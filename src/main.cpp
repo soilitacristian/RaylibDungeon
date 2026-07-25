@@ -2,6 +2,10 @@
 #include "playerDrawingData.h"
 #include "raylib.h"
 
+// TODO: create a custom unit instead of replying on pixels, uniform map size no matter the screen resolution
+// calculate that unit based on a formula that will take into account a lot of parameters related to monitor
+// asset sizes, scale, zoom, etc
+// Impl idea: two functions that auto convert pixels to game units based on the parameters above
 constexpr int TILE_WIDTH = 16;
 constexpr int TILE_HEIGHT = 16;
 constexpr int MAP_SIZE = 10;
@@ -23,15 +27,18 @@ void HandlePlayerInput(PlayerDrawingData *player);
 
 void UpdatePlayerAnimation(PlayerDrawingData *player);
 
+// TODO: separate end-user config from debug config
+// debug config -> most probably windowed or configurable using some type of file / ENV variables
+// end-user -> fullscreen with scaling / zoom level detection logic per monitor
 int main() {
-    SetTargetFPS(144);
+    SetTargetFPS(240);
 
     // TODO: In the future add a function to initialize window properties based on user configs
     InitWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "Raylib Dungeon");
 
     Camera2D camera;
-    camera.target = {0, 0};
-    camera.offset = {0, 0};
+    camera.target = {};
+    camera.offset = {};
     camera.rotation = 0.0f;
     camera.zoom = ZOOM_LEVEL;
 
@@ -60,6 +67,10 @@ int main() {
     return 0;
 }
 
+// FIXME: update map rendering to take into acount monitor state (e.g. Windowed, Fullscreen)
+// so that rendering is literally in the middle of the screen
+//
+// TODO: group tiles by type so we can implement collisions based on that type (e.g. only Walls get collisions)
 void DrawMap(MapDrawingData data) {
     for (int i = WINDOW_OFFSET; i < MAP_SIZE + WINDOW_OFFSET; i++) {
         for (int j = WINDOW_OFFSET; j < MAP_SIZE + WINDOW_OFFSET; j++) {
@@ -123,6 +134,9 @@ void DrawMap(MapDrawingData data) {
     }
 }
 
+// TODO: move this initialization to be data driven, based on a file,
+// which will also define the layout of the level, most probably a bi-dimensional
+// array with tiles in their proper location already, ready to be rendered + collisions
 MapDrawingData CreateMapDrawingData() {
     MapDrawingData data;
     data.tileset = LoadTexture("resources/tilemap.png");
@@ -138,6 +152,8 @@ MapDrawingData CreateMapDrawingData() {
     return data;
 }
 
+// Add more types of animations and think of a smooth way of transitioning between
+// them based on user input, animationProgress, etc. (e.g. Walking, Attacking, Death, etc)
 void DrawPlayer(PlayerDrawingData *player) {
     UpdatePlayerAnimation(player);
 
