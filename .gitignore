@@ -1,0 +1,14 @@
+# Ignore clangd cache
+.cache/
+
+# Ignore build directories (build/ is what the scripts use; the others are
+# whatever your IDE decides to generate)
+build/
+build-*/
+cmake-build-*/
+resources/
+
+# Ignore Intellij IDEs configurations
+.idea/
+
+# Add your own directories to ignore based on the IDE you use

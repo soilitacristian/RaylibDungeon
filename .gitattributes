@@ -1,0 +1,23 @@
+# Normalize all text files to LF in the repository
+* text=auto eol=lf
+
+# Explicit extensions, in case auto-detection misses something
+*.cpp text eol=lf
+*.h text eol=lf
+*.hpp text eol=lf
+*.cmake text eol=lf
+CMakeLists.txt text eol=lf
+*.md text eol=lf
+*.lua text eol=lf
+
+# Windows-specific scripts should keep CRLF (batch files expect it)
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Binary files - don't touch line endings at all
+*.png binary
+*.jpg binary
+*.ico binary
+*.lib binary
+*.dll binary
+*.exe binary
