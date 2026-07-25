@@ -1,11 +1,16 @@
 #include "raylib.h"
 
-const float TILE_WIDTH = 16;
-const float TILE_HEIGHT = 16;
-const int MAP_SIZE = 10;
+constexpr int TILE_WIDTH = 16;
+constexpr int TILE_HEIGHT = 16;
+constexpr int MAP_SIZE = 10;
+constexpr int ZOOM_LEVEL = 3;
+constexpr int WINDOW_OFFSET = 1;
+constexpr int WINDOW_WIDTH = (MAP_SIZE + WINDOW_OFFSET) * TILE_WIDTH * ZOOM_LEVEL;
+constexpr int WINDOW_HEIGHT = (MAP_SIZE + WINDOW_OFFSET) * TILE_HEIGHT * ZOOM_LEVEL;
 
 int main(void) {
-    InitWindow(800, 600, "Raylib Dungeon");
+    // TODO: In the future add a function to initialize window properties based on user configs
+    InitWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "Raylib Dungeon");
     Texture2D tileset = LoadTexture("resources/tilemap.png");
 
     Rectangle floorTile = {160, 192, TILE_WIDTH, TILE_HEIGHT};
@@ -24,72 +29,71 @@ int main(void) {
     camera.target = {0, 0};
     camera.offset = {0, 0};
     camera.rotation = 0.0f;
-    camera.zoom = 3.0f;
-
-    Vector2 tilePos = {0, 0};
+    camera.zoom = ZOOM_LEVEL;
 
     while (!WindowShouldClose()) {
         BeginDrawing();
         {
-            ClearBackground(PURPLE);
+            ClearBackground(BLACK);
             BeginMode2D(camera);
             {
-                for (int i = 0; i < MAP_SIZE + 1; i++) {
-                    for (int j = 0; j < MAP_SIZE + 1; j++) {
-                        tilePos = {i * TILE_WIDTH, j * TILE_HEIGHT};
+                for (int i = WINDOW_OFFSET; i < MAP_SIZE + WINDOW_OFFSET; i++) {
+                    for (int j = WINDOW_OFFSET; j < MAP_SIZE + WINDOW_OFFSET; j++) {
+                        const float x = static_cast<float>(i * TILE_WIDTH);
+                        const float y = static_cast<float>(j * TILE_HEIGHT);
+                        const Vector2 tilePos = {x, y};
 
                         // top left corner
-                        if (i == 0 && j == 0) {
+                        if (i == WINDOW_OFFSET && j == WINDOW_OFFSET) {
                             DrawTextureRec(tileset, topLeftCorner, tilePos, WHITE);
                             continue;
                         }
 
                         // left wall
-                        if (i == 0 && j > 0 && j < MAP_SIZE) {
+                        if (i == WINDOW_OFFSET && j > WINDOW_OFFSET && j < MAP_SIZE - 1) {
                             DrawTextureRec(tileset, leftWall, tilePos, WHITE);
                             continue;
                         }
 
                         // bottom left corner
-                        if (i == 0 && j == MAP_SIZE) {
+                        if (i == WINDOW_OFFSET && j == MAP_SIZE - 1) {
                             DrawTextureRec(tileset, bottomLeftCorner, tilePos, WHITE);
                             continue;
                         }
 
                         // top wall
-                        if ((i > 0 && i < MAP_SIZE) && j == 0) {
+                        if ((i > WINDOW_OFFSET && i < MAP_SIZE - 1) && j == WINDOW_OFFSET) {
                             DrawTextureRec(tileset, topWall, tilePos, WHITE);
                             continue;
                         }
 
                         // top right corner
-                        if (i == MAP_SIZE && j == 0) {
+                        if (i == MAP_SIZE - 1 && j == WINDOW_OFFSET) {
                             DrawTextureRec(tileset, topRightCorner, tilePos, WHITE);
                             continue;
                         }
 
                         // right wall
-                        if (i == MAP_SIZE && (j > 0 && j < MAP_SIZE)) {
+                        if (i == MAP_SIZE - 1 && (j > WINDOW_OFFSET && j < MAP_SIZE - 1)) {
                             DrawTextureRec(tileset, rightWall, tilePos, WHITE);
                             continue;
                         }
 
                         // bottom right corner
-                        if (i == MAP_SIZE && j == MAP_SIZE) {
+                        if (i == MAP_SIZE - 1 && j == MAP_SIZE - 1) {
                             DrawTextureRec(tileset, bottomRightCorner, tilePos, WHITE);
                             continue;
                         }
 
                         // bottom wall
-                        if ((i > 0 && i < MAP_SIZE) && j == MAP_SIZE) {
+                        if ((i > WINDOW_OFFSET && i < MAP_SIZE) && j == MAP_SIZE - 1) {
                             DrawTextureRec(tileset, bottomWall, tilePos, WHITE);
                             continue;
                         }
 
                         // all floor tiles
-                        if ((i > 0 && i < MAP_SIZE) && (j > 0 && j < MAP_SIZE)) {
+                        if ((i > WINDOW_OFFSET && i < MAP_SIZE) && (j > WINDOW_OFFSET && j < MAP_SIZE)) {
                             DrawTextureRec(tileset, floorTile, tilePos, WHITE);
-                            continue;
                         }
                     }
                 }
