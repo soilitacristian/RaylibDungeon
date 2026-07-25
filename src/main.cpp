@@ -11,17 +11,21 @@ constexpr int WINDOW_WIDTH = (MAP_SIZE + WINDOW_OFFSET) * TILE_WIDTH * ZOOM_LEVE
 constexpr int WINDOW_HEIGHT = (MAP_SIZE + WINDOW_OFFSET) * TILE_HEIGHT * ZOOM_LEVEL;
 
 // TODO: Add level procedural generation in the future
-void MapDrawing(MapDrawingData data);
+void DrawMap(MapDrawingData data);
 
 MapDrawingData CreateMapDrawingData();
 
 PlayerDrawingData CreatePlayerDrawingData();
 
-void PlayerDrawing(PlayerDrawingData player);
+void DrawPlayer(PlayerDrawingData *player);
 
 void HandlePlayerInput(PlayerDrawingData *player);
 
+void UpdatePlayerAnimation(PlayerDrawingData *player);
+
 int main() {
+    SetTargetFPS(144);
+
     // TODO: In the future add a function to initialize window properties based on user configs
     InitWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "Raylib Dungeon");
 
@@ -43,8 +47,8 @@ int main() {
             ClearBackground(BLACK);
             BeginMode2D(camera);
             {
-                MapDrawing(map);
-                PlayerDrawing(player);
+                DrawMap(map);
+                DrawPlayer(&player);
             }
             EndMode2D();
         }
@@ -56,7 +60,7 @@ int main() {
     return 0;
 }
 
-void MapDrawing(MapDrawingData data) {
+void DrawMap(MapDrawingData data) {
     for (int i = WINDOW_OFFSET; i < MAP_SIZE + WINDOW_OFFSET; i++) {
         for (int j = WINDOW_OFFSET; j < MAP_SIZE + WINDOW_OFFSET; j++) {
             const float x = static_cast<float>(i * TILE_WIDTH);
@@ -134,12 +138,20 @@ MapDrawingData CreateMapDrawingData() {
     return data;
 }
 
-void PlayerDrawing(PlayerDrawingData player) {
-    Rectangle source = {0, 0, player.texture.width * player.isFlipped, player.texture.height * 1.0f};
-    Rectangle destination = {player.position.x, player.position.y, player.texture.width * 0.7f,
-                             player.texture.height * 0.7f};
+void DrawPlayer(PlayerDrawingData *player) {
+    UpdatePlayerAnimation(player);
+
+    Rectangle source = player->currentFrame;
+    source.width *= player->isFlipped;
+
+    Rectangle destination;
+    destination.x = player->position.x;
+    destination.y = player->position.y;
+    destination.width = source.width;
+    destination.height = source.height;
     float rotation = 0;
-    DrawTexturePro(player.texture, source, destination, {0, 0}, rotation, WHITE);
+
+    DrawTexturePro(player->texture, source, destination, {0, 0}, rotation, WHITE);
 }
 
 PlayerDrawingData CreatePlayerDrawingData() {
@@ -147,7 +159,24 @@ PlayerDrawingData CreatePlayerDrawingData() {
     data.texture = LoadTexture("resources/playerIdle.png");
     data.position = {};
     data.isFlipped = 1;
+    data.currentFrame = {};
+    data.animationDuration = 0.5f;
+    data.animationProgress = 0;
+    data.frameCount = 4;
     return data;
+}
+
+void UpdatePlayerAnimation(PlayerDrawingData *player) {
+    int currentFrameIndex = static_cast<int>((player->animationProgress / player->animationDuration) *
+                                             static_cast<float>(player->frameCount));
+    int frameCount = player->frameCount;
+    Vector2 frameSize = {player->texture.width / static_cast<float>(frameCount), player->texture.height * 1.0f};
+
+    player->currentFrame = {currentFrameIndex * frameSize.x, 0, frameSize.x, frameSize.y};
+    player->animationProgress += GetFrameTime();
+    if (player->animationProgress > player->animationDuration) {
+        player->animationProgress = player->animationProgress - player->animationDuration;
+    }
 }
 
 void HandlePlayerInput(PlayerDrawingData *player) {
