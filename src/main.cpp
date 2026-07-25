@@ -1,10 +1,11 @@
 #include "mapDrawingData.h"
+#include "playerDrawingData.h"
 #include "raylib.h"
 
 constexpr int TILE_WIDTH = 16;
 constexpr int TILE_HEIGHT = 16;
 constexpr int MAP_SIZE = 10;
-constexpr int ZOOM_LEVEL = 7;
+constexpr int ZOOM_LEVEL = 3;
 constexpr int WINDOW_OFFSET = 1;
 constexpr int WINDOW_WIDTH = (MAP_SIZE + WINDOW_OFFSET) * TILE_WIDTH * ZOOM_LEVEL;
 constexpr int WINDOW_HEIGHT = (MAP_SIZE + WINDOW_OFFSET) * TILE_HEIGHT * ZOOM_LEVEL;
@@ -14,14 +15,15 @@ void MapDrawing(MapDrawingData data);
 
 MapDrawingData CreateMapDrawingData();
 
+PlayerDrawingData CreatePlayerDrawingData();
+
+void PlayerDrawing(PlayerDrawingData player);
+
+void HandlePlayerInput(PlayerDrawingData *player);
+
 int main() {
     // TODO: In the future add a function to initialize window properties based on user configs
     InitWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "Raylib Dungeon");
-
-    Texture2D player = LoadTexture("resources/player.png");
-    Vector2 playerPos = {0, 0};
-    MapDrawingData data = CreateMapDrawingData();
-    float playerFlip = 1;
 
     Camera2D camera;
     camera.target = {0, 0};
@@ -29,42 +31,27 @@ int main() {
     camera.rotation = 0.0f;
     camera.zoom = ZOOM_LEVEL;
 
-    // SetTargetFPS(60);
+    MapDrawingData map = CreateMapDrawingData();
+    PlayerDrawingData player = CreatePlayerDrawingData();
 
     while (!WindowShouldClose()) {
+        HandlePlayerInput(&player);
+
         BeginDrawing();
         {
             DrawFPS(0, 0);
             ClearBackground(BLACK);
             BeginMode2D(camera);
             {
-                float playerSpeed = 50 * GetFrameTime();
-                if (IsKeyDown(KEY_A)) {
-                    playerPos.x -= playerSpeed;
-                    playerFlip = -1;
-                }
-                if (IsKeyDown(KEY_D)) {
-                    playerPos.x += playerSpeed;
-                    playerFlip = 1;
-                }
-                if (IsKeyDown(KEY_W)) {
-                    playerPos.y -= playerSpeed;
-                }
-                if (IsKeyDown(KEY_S)) {
-                    playerPos.y += playerSpeed;
-                }
-                MapDrawing(data);
-                DrawTexturePro(player, {0, 0, player.width * playerFlip, player.height * 1.0f},       // source
-                               {playerPos.x, playerPos.y, player.width * 0.7f, player.height * 0.7f}, // dest
-                               {0, 0},                                                                // origin
-                               0.0f, WHITE);
+                MapDrawing(map);
+                PlayerDrawing(player);
             }
             EndMode2D();
         }
         EndDrawing();
     }
-    UnloadTexture(data.tileset);
-    UnloadTexture(player);
+    UnloadTexture(map.tileset);
+    UnloadTexture(player.texture);
     CloseWindow();
     return 0;
 }
@@ -145,4 +132,38 @@ MapDrawingData CreateMapDrawingData() {
     data.rightWall = {112, 128, TILE_WIDTH, TILE_HEIGHT};
     data.bottomWall = {96, 144, TILE_WIDTH, TILE_HEIGHT};
     return data;
+}
+
+void PlayerDrawing(PlayerDrawingData player) {
+    Rectangle source = {0, 0, player.texture.width * player.isFlipped, player.texture.height * 1.0f};
+    Rectangle destination = {player.position.x, player.position.y, player.texture.width * 0.7f,
+                             player.texture.height * 0.7f};
+    float rotation = 0;
+    DrawTexturePro(player.texture, source, destination, {0, 0}, rotation, WHITE);
+}
+
+PlayerDrawingData CreatePlayerDrawingData() {
+    PlayerDrawingData data;
+    data.texture = LoadTexture("resources/playerIdle.png");
+    data.position = {};
+    data.isFlipped = 1;
+    return data;
+}
+
+void HandlePlayerInput(PlayerDrawingData *player) {
+    float playerSpeed = 50 * GetFrameTime();
+    if (IsKeyDown(KEY_A)) {
+        player->position.x -= playerSpeed;
+        player->isFlipped = -1;
+    }
+    if (IsKeyDown(KEY_D)) {
+        player->position.x += playerSpeed;
+        player->isFlipped = 1;
+    }
+    if (IsKeyDown(KEY_W)) {
+        player->position.y -= playerSpeed;
+    }
+    if (IsKeyDown(KEY_S)) {
+        player->position.y += playerSpeed;
+    }
 }
