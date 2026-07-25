@@ -1,4 +1,5 @@
 ﻿#pragma once
+#include "raylib.h"
 
 struct MapDrawingData {
     Texture2D tileset;
