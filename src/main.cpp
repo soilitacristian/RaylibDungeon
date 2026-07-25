@@ -1,16 +1,24 @@
 #include "raylib.h"
 
-int main(void) {
-    
-    InitWindow(800, 600, "raylib example - basic window");
-    const int tileWidth = 16;
-    const int tileHeight = 16;
-    Texture2D tileset = LoadTexture("resources/Dungeon Gathering/Set 1.png");
-    Rectangle floorTile = {160, 192, tileWidth, tileHeight};
-    Rectangle middleWallTile = {96, 112, tileWidth, tileHeight};
+const float TILE_WIDTH = 16;
+const float TILE_HEIGHT = 16;
+const int MAP_SIZE = 10;
 
-    Rectangle leftCornerTile = {80, 112, tileWidth, tileHeight};
-    Rectangle rightCornerTile = {112, 112, tileWidth, tileHeight};
+int main(void) {
+    InitWindow(800, 600, "Raylib Dungeon");
+    Texture2D tileset = LoadTexture("resources/tilemap.png");
+
+    Rectangle floorTile = {160, 192, TILE_WIDTH, TILE_HEIGHT};
+
+    Rectangle topLeftCorner = {80, 112, TILE_WIDTH, TILE_HEIGHT};
+    Rectangle topRightCorner = {112, 112, TILE_WIDTH, TILE_HEIGHT};
+    Rectangle bottomLeftCorner = {80, 144, TILE_WIDTH, TILE_HEIGHT};
+    Rectangle bottomRightCorner = {112, 144, TILE_WIDTH, TILE_HEIGHT};
+
+    Rectangle topWall = {96, 112, TILE_WIDTH, TILE_HEIGHT};
+    Rectangle leftWall = {80, 128, TILE_WIDTH, TILE_HEIGHT};
+    Rectangle rightWall = {112, 128, TILE_WIDTH, TILE_HEIGHT};
+    Rectangle bottomWall = {96, 144, TILE_WIDTH, TILE_HEIGHT};
 
     Camera2D camera;
     camera.target = {0, 0};
@@ -18,38 +26,72 @@ int main(void) {
     camera.rotation = 0.0f;
     camera.zoom = 3.0f;
 
+    Vector2 tilePos = {0, 0};
+
     while (!WindowShouldClose()) {
         BeginDrawing();
         {
             ClearBackground(PURPLE);
             BeginMode2D(camera);
             {
-                Vector2 tilePos = {tileWidth, 0};
-                DrawTextureRec(tileset, leftCornerTile, {0, 0}, WHITE);
-                for (int i = 0; i < 9; i++) {
-                    if (i == 8) {
-                        DrawTextureRec(tileset, rightCornerTile, tilePos, WHITE);
-                        continue;
+                for (int i = 0; i < MAP_SIZE + 1; i++) {
+                    for (int j = 0; j < MAP_SIZE + 1; j++) {
+                        tilePos = {i * TILE_WIDTH, j * TILE_HEIGHT};
+
+                        // top left corner
+                        if (i == 0 && j == 0) {
+                            DrawTextureRec(tileset, topLeftCorner, tilePos, WHITE);
+                            continue;
+                        }
+
+                        // left wall
+                        if (i == 0 && j > 0 && j < MAP_SIZE) {
+                            DrawTextureRec(tileset, leftWall, tilePos, WHITE);
+                            continue;
+                        }
+
+                        // bottom left corner
+                        if (i == 0 && j == MAP_SIZE) {
+                            DrawTextureRec(tileset, bottomLeftCorner, tilePos, WHITE);
+                            continue;
+                        }
+
+                        // top wall
+                        if ((i > 0 && i < MAP_SIZE) && j == 0) {
+                            DrawTextureRec(tileset, topWall, tilePos, WHITE);
+                            continue;
+                        }
+
+                        // top right corner
+                        if (i == MAP_SIZE && j == 0) {
+                            DrawTextureRec(tileset, topRightCorner, tilePos, WHITE);
+                            continue;
+                        }
+
+                        // right wall
+                        if (i == MAP_SIZE && (j > 0 && j < MAP_SIZE)) {
+                            DrawTextureRec(tileset, rightWall, tilePos, WHITE);
+                            continue;
+                        }
+
+                        // bottom right corner
+                        if (i == MAP_SIZE && j == MAP_SIZE) {
+                            DrawTextureRec(tileset, bottomRightCorner, tilePos, WHITE);
+                            continue;
+                        }
+
+                        // bottom wall
+                        if ((i > 0 && i < MAP_SIZE) && j == MAP_SIZE) {
+                            DrawTextureRec(tileset, bottomWall, tilePos, WHITE);
+                            continue;
+                        }
+
+                        // all floor tiles
+                        if ((i > 0 && i < MAP_SIZE) && (j > 0 && j < MAP_SIZE)) {
+                            DrawTextureRec(tileset, floorTile, tilePos, WHITE);
+                            continue;
+                        }
                     }
-
-                    DrawTextureRec(tileset, middleWallTile, tilePos, WHITE);
-                    tilePos.x += tileWidth;
-                }
-
-                tilePos.x = tileWidth;
-                for (int i = 0; i < 9; i++) {
-                    tilePos.y = tileWidth;
-                    for (int j = 0; j < 9; j++) {
-                        DrawTextureRec(tileset, floorTile, tilePos, WHITE);
-                        tilePos.y += tileWidth;
-                    }
-                    tilePos.x += tileWidth;
-                }
-
-                tilePos.y = tileHeight;
-                for (int j = 0; j < 10; j++) {
-                    DrawTextureRec(tileset, middleWallTile, tilePos, WHITE);
-                    tilePos.y += tileHeight;
                 }
             }
             EndMode2D();
