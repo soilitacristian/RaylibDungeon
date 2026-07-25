@@ -17,8 +17,6 @@ int main(void) {
     camera.offset = {0, 0};
     camera.rotation = 0.0f;
     camera.zoom = 3.0f;
-    
-    
 
     while (!WindowShouldClose()) {
         BeginDrawing();

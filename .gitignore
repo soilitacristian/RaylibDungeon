@@ -6,7 +6,6 @@
 build/
 build-*/
 cmake-build-*/
-resources/
 
 # Ignore Intellij IDEs configurations
 .idea/

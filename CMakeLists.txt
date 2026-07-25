@@ -17,3 +17,10 @@ FetchContent_MakeAvailable(raylib)
 
 add_executable(main src/main.cpp)
 target_link_libraries(main PRIVATE raylib)
+
+add_custom_command(TARGET main POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+        ${CMAKE_SOURCE_DIR}/resources
+        $<TARGET_FILE_DIR:main>/resources
+        COMMENT "Copying resources to output directory"
+)
