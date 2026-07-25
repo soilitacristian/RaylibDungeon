@@ -2,26 +2,38 @@
 #include "playerDrawingData.h"
 #include "raylib.h"
 
+// virtual window width and height used for calculations
+constexpr int WINDOW_WIDTH = 1920;
+constexpr int WINDOW_HEIGHT = 1080;
+constexpr float PIXELS_PER_WORLD_UNIT = 16.0f;
+constexpr float ATLAS_CELL = 16.0f;
+
 // TODO: create a custom unit instead of replying on pixels, uniform map size no matter the screen resolution
 // calculate that unit based on a formula that will take into account a lot of parameters related to monitor
 // asset sizes, scale, zoom, etc
 // Impl idea: two functions that auto convert pixels to game units based on the parameters above
-constexpr int TILE_WIDTH = 16;
-constexpr int TILE_HEIGHT = 16;
+
+// 1 tile = 5 world units
+constexpr int TILE_SIZE = 5;
+
+// 1 map = 10 tiles = 50 world units * PIXELS_PER_WORLD_UNIT = 800 pixels
 constexpr int MAP_SIZE = 10;
-constexpr int ZOOM_LEVEL = 3;
-constexpr int WINDOW_OFFSET = 1;
-constexpr int WINDOW_WIDTH = (MAP_SIZE + WINDOW_OFFSET) * TILE_WIDTH * ZOOM_LEVEL;
-constexpr int WINDOW_HEIGHT = (MAP_SIZE + WINDOW_OFFSET) * TILE_HEIGHT * ZOOM_LEVEL;
+
+constexpr float PLAYER_SPEED = 12.0f;
+constexpr float PLAYER_HEIGHT = 4.0f;
+
+void FitCameraToScreen(Camera2D &camera);
 
 // TODO: Add level procedural generation in the future
-void DrawMap(MapDrawingData data);
+void DrawMap(MapDrawingData &data);
+
+Rectangle TileSource(MapDrawingData *data, int i, int j);
 
 MapDrawingData CreateMapDrawingData();
 
 PlayerDrawingData CreatePlayerDrawingData();
 
-void DrawPlayer(PlayerDrawingData *player);
+void DrawPlayer(PlayerDrawingData &player);
 
 void HandlePlayerInput(PlayerDrawingData *player);
 
@@ -31,33 +43,41 @@ void UpdatePlayerAnimation(PlayerDrawingData *player);
 // debug config -> most probably windowed or configurable using some type of file / ENV variables
 // end-user -> fullscreen with scaling / zoom level detection logic per monitor
 int main() {
-    SetTargetFPS(240);
+    SetConfigFlags(FLAG_WINDOW_RESIZABLE);
 
     // TODO: In the future add a function to initialize window properties based on user configs
     InitWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "Raylib Dungeon");
+    SetTargetFPS(240);
 
     Camera2D camera;
-    camera.target = {};
-    camera.offset = {};
     camera.rotation = 0.0f;
-    camera.zoom = ZOOM_LEVEL;
+    FitCameraToScreen(camera);
 
     MapDrawingData map = CreateMapDrawingData();
     PlayerDrawingData player = CreatePlayerDrawingData();
 
+    // player starting position (e.g. middle of the map)
+    player.position = {MAP_SIZE * TILE_SIZE * 0.5f, MAP_SIZE * TILE_SIZE * 0.5f};
+
     while (!WindowShouldClose()) {
+        if (IsWindowResized()) {
+            FitCameraToScreen(camera);
+        }
+
         HandlePlayerInput(&player);
+        UpdatePlayerAnimation(&player);
+        camera.target = player.position;
 
         BeginDrawing();
         {
-            DrawFPS(0, 0);
             ClearBackground(BLACK);
             BeginMode2D(camera);
             {
                 DrawMap(map);
-                DrawPlayer(&player);
+                DrawPlayer(player);
             }
             EndMode2D();
+            DrawFPS(0, 0);
         }
         EndDrawing();
     }
@@ -67,69 +87,47 @@ int main() {
     return 0;
 }
 
-// FIXME: update map rendering to take into acount monitor state (e.g. Windowed, Fullscreen)
-// so that rendering is literally in the middle of the screen
-//
-// TODO: group tiles by type so we can implement collisions based on that type (e.g. only Walls get collisions)
-void DrawMap(MapDrawingData data) {
-    for (int i = WINDOW_OFFSET; i < MAP_SIZE + WINDOW_OFFSET; i++) {
-        for (int j = WINDOW_OFFSET; j < MAP_SIZE + WINDOW_OFFSET; j++) {
-            const float x = static_cast<float>(i * TILE_WIDTH);
-            const float y = static_cast<float>(j * TILE_HEIGHT);
-            const Vector2 tilePos = {x, y};
+// TODO: replace with a data-driven tile grid loaded from a file
+Rectangle TileSource(const MapDrawingData &data, int i, int j) {
+    const bool left = (i == 0);
+    const bool right = (i == MAP_SIZE - 1);
+    const bool top = (j == 0);
+    const bool bottom = (j == MAP_SIZE - 1);
 
-            // top left corner
-            if (i == WINDOW_OFFSET && j == WINDOW_OFFSET) {
-                DrawTextureRec(data.tileset, data.topLeftCorner, tilePos, WHITE);
-                continue;
-            }
+    if (left && top) {
+        return data.topLeftCorner;
+    }
+    if (right && top) {
+        return data.topRightCorner;
+    }
+    if (left && bottom) {
+        return data.bottomLeftCorner;
+    }
+    if (right && bottom) {
+        return data.bottomRightCorner;
+    }
+    if (left) {
+        return data.leftWall;
+    }
+    if (right) {
+        return data.rightWall;
+    }
+    if (top) {
+        return data.topWall;
+    }
+    if (bottom) {
+        return data.bottomWall;
+    }
 
-            // left wall
-            if (i == WINDOW_OFFSET && j > WINDOW_OFFSET && j < MAP_SIZE - 1) {
-                DrawTextureRec(data.tileset, data.leftWall, tilePos, WHITE);
-                continue;
-            }
+    return data.floorTile;
+}
 
-            // bottom left corner
-            if (i == WINDOW_OFFSET && j == MAP_SIZE - 1) {
-                DrawTextureRec(data.tileset, data.bottomLeftCorner, tilePos, WHITE);
-                continue;
-            }
-
-            // top wall
-            if ((i > WINDOW_OFFSET && i < MAP_SIZE - 1) && j == WINDOW_OFFSET) {
-                DrawTextureRec(data.tileset, data.topWall, tilePos, WHITE);
-                continue;
-            }
-
-            // top right corner
-            if (i == MAP_SIZE - 1 && j == WINDOW_OFFSET) {
-                DrawTextureRec(data.tileset, data.topRightCorner, tilePos, WHITE);
-                continue;
-            }
-
-            // right wall
-            if (i == MAP_SIZE - 1 && (j > WINDOW_OFFSET && j < MAP_SIZE - 1)) {
-                DrawTextureRec(data.tileset, data.rightWall, tilePos, WHITE);
-                continue;
-            }
-
-            // bottom right corner
-            if (i == MAP_SIZE - 1 && j == MAP_SIZE - 1) {
-                DrawTextureRec(data.tileset, data.bottomRightCorner, tilePos, WHITE);
-                continue;
-            }
-
-            // bottom wall
-            if ((i > WINDOW_OFFSET && i < MAP_SIZE) && j == MAP_SIZE - 1) {
-                DrawTextureRec(data.tileset, data.bottomWall, tilePos, WHITE);
-                continue;
-            }
-
-            // all floor tiles
-            if ((i > WINDOW_OFFSET && i < MAP_SIZE) && (j > WINDOW_OFFSET && j < MAP_SIZE)) {
-                DrawTextureRec(data.tileset, data.floorTile, tilePos, WHITE);
-            }
+void DrawMap(MapDrawingData &data) {
+    for (int i = 0; i < MAP_SIZE; i++) {
+        for (int j = 0; j < MAP_SIZE; j++) {
+            const Rectangle source = TileSource(data, i, j);
+            const Rectangle dest = {(float)i * TILE_SIZE, (float)j * TILE_SIZE, TILE_SIZE, TILE_SIZE};
+            DrawTexturePro(data.tileset, source, dest, {0, 0}, 0.0f, WHITE);
         }
     }
 }
@@ -140,34 +138,38 @@ void DrawMap(MapDrawingData data) {
 MapDrawingData CreateMapDrawingData() {
     MapDrawingData data;
     data.tileset = LoadTexture("resources/tilemap.png");
-    data.floorTile = {160, 192, TILE_WIDTH, TILE_HEIGHT};
-    data.topLeftCorner = {80, 112, TILE_WIDTH, TILE_HEIGHT};
-    data.topRightCorner = {112, 112, TILE_WIDTH, TILE_HEIGHT};
-    data.bottomLeftCorner = {80, 144, TILE_WIDTH, TILE_HEIGHT};
-    data.bottomRightCorner = {112, 144, TILE_WIDTH, TILE_HEIGHT};
-    data.topWall = {96, 112, TILE_WIDTH, TILE_HEIGHT};
-    data.leftWall = {80, 128, TILE_WIDTH, TILE_HEIGHT};
-    data.rightWall = {112, 128, TILE_WIDTH, TILE_HEIGHT};
-    data.bottomWall = {96, 144, TILE_WIDTH, TILE_HEIGHT};
+    data.floorTile = {160, 192, ATLAS_CELL, ATLAS_CELL};
+    data.topLeftCorner = {80, 112, ATLAS_CELL, ATLAS_CELL};
+    data.topRightCorner = {112, 112, ATLAS_CELL, ATLAS_CELL};
+    data.bottomLeftCorner = {80, 144, ATLAS_CELL, ATLAS_CELL};
+    data.bottomRightCorner = {112, 144, ATLAS_CELL, ATLAS_CELL};
+    data.topWall = {96, 112, ATLAS_CELL, ATLAS_CELL};
+    data.leftWall = {80, 128, ATLAS_CELL, ATLAS_CELL};
+    data.rightWall = {112, 128, ATLAS_CELL, ATLAS_CELL};
+    data.bottomWall = {96, 144, ATLAS_CELL, ATLAS_CELL};
     return data;
 }
 
 // Add more types of animations and think of a smooth way of transitioning between
 // them based on user input, animationProgress, etc. (e.g. Walking, Attacking, Death, etc)
-void DrawPlayer(PlayerDrawingData *player) {
-    UpdatePlayerAnimation(player);
+void DrawPlayer(PlayerDrawingData &player) {
+    Rectangle source = player.currentFrame;
 
-    Rectangle source = player->currentFrame;
-    source.width *= player->isFlipped;
+    const float aspectRatio = source.width / source.height;
+    const float height = PLAYER_HEIGHT;
+    const float width = PLAYER_HEIGHT * aspectRatio;
+
+    source.width *= player.isFlipped;
 
     Rectangle destination;
-    destination.x = player->position.x;
-    destination.y = player->position.y;
+    destination.x = player.position.x;
+    destination.y = player.position.y;
     destination.width = source.width;
     destination.height = source.height;
-    float rotation = 0;
 
-    DrawTexturePro(player->texture, source, destination, {0, 0}, rotation, WHITE);
+    float rotation = 0.0f;
+    const Vector2 origin = {width * 0.5f, height * 0.5f};
+    DrawTexturePro(player.texture, source, destination, origin, rotation, WHITE);
 }
 
 PlayerDrawingData CreatePlayerDrawingData() {
@@ -183,20 +185,25 @@ PlayerDrawingData CreatePlayerDrawingData() {
 }
 
 void UpdatePlayerAnimation(PlayerDrawingData *player) {
-    int currentFrameIndex = static_cast<int>((player->animationProgress / player->animationDuration) *
-                                             static_cast<float>(player->frameCount));
-    int frameCount = player->frameCount;
-    Vector2 frameSize = {player->texture.width / static_cast<float>(frameCount), player->texture.height * 1.0f};
-
-    player->currentFrame = {currentFrameIndex * frameSize.x, 0, frameSize.x, frameSize.y};
     player->animationProgress += GetFrameTime();
-    if (player->animationProgress > player->animationDuration) {
-        player->animationProgress = player->animationProgress - player->animationDuration;
+    while (player->animationProgress >= player->animationDuration) {
+        player->animationProgress -= player->animationDuration;
     }
+
+    const float frameWidth = player->texture.width / static_cast<float>(player->frameCount);
+    const float frameHeight = static_cast<float>(player->texture.height);
+    int index = static_cast<int>((player->animationProgress / player->animationDuration) *
+                                 static_cast<float>(player->frameCount));
+
+    if (index >= player->frameCount) {
+        index = player->frameCount - 1;
+    }
+
+    player->currentFrame = {index * frameWidth, 0.0f, frameWidth, frameHeight};
 }
 
 void HandlePlayerInput(PlayerDrawingData *player) {
-    float playerSpeed = 50 * GetFrameTime();
+    float playerSpeed = PLAYER_SPEED * GetFrameTime();
     if (IsKeyDown(KEY_A)) {
         player->position.x -= playerSpeed;
         player->isFlipped = -1;
@@ -211,4 +218,9 @@ void HandlePlayerInput(PlayerDrawingData *player) {
     if (IsKeyDown(KEY_S)) {
         player->position.y += playerSpeed;
     }
+}
+
+void FitCameraToScreen(Camera2D &camera) {
+    camera.zoom = PIXELS_PER_WORLD_UNIT * ((float)GetScreenHeight() / WINDOW_HEIGHT);
+    camera.offset = {GetScreenWidth() / 2.0f, GetScreenHeight() / 2.0f};
 }
