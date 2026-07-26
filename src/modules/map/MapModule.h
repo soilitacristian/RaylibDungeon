@@ -22,7 +22,7 @@ class MapModule : public GameModule {
     Tilemap LoadTilemap(const std::string &tilemapPath);
     TilesetInfo LoadTilesetInfo(const std::string &tsjPath, int firstGid, const std::string &baseDir);
     const TilesetInfo *FindTileset(int gid) const;
-    Rectangle SourceRectFor(const TilesetInfo &ts, int gid) const;
+    Rectangle SourceRectForGid(const TilesetInfo &ts, int gid) const;
     void BuildDrawList();
     void BuildCollision();
 };

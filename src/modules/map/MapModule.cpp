@@ -66,6 +66,19 @@ Tilemap MapModule::LoadTilemap(const std::string &tilemapPath) {
     return map;
 }
 
+/*
+ * Each tileset starts from a specific gid, for example our tileset containing the floors (atlas_floor-16x16)
+ * starts at gid = 97, we check what tileset contains that gid in it's range and return that tileset as a match
+ *
+ * Example:
+ * Tracing gid = 184
+ *
+ * 1. walls_high tileset -> firstGid 1 -> 1 <= 184? Yes. Best is null -> best = walls_high
+ * 2. floor tileset -> firstGid 97 -> 97 <= 184? Yes. Is 97 > 1? Yes, so floor starts later than our
+ *    current best -> best = floor.
+ * 3. walls_low tileset -> firstGid 146. 146 <= 184? Yes, and 146 > 97? Yes -> best = walls_low
+ * 4. return walls_low
+ */
 const TilesetInfo *MapModule::FindTileset(int gid) const {
     const TilesetInfo *best = nullptr;
     for (const auto &tileset : tilemap.tilesets) {
@@ -76,10 +89,28 @@ const TilesetInfo *MapModule::FindTileset(int gid) const {
     return best;
 }
 
-Rectangle MapModule::SourceRectFor(const TilesetInfo &ts, int gid) const {
-    const int local = gid - ts.firstGid;
-    const int col = local % ts.columns;
-    const int row = local / ts.columns;
+/*
+ * Creates the source rectangle for a specific tile gid from its' tileset.
+ *
+ * Example:
+ * We want gid = 75 from the atlas_walls_high-16x32 tileset
+ * ts.firstGid = 1 up until 96, 97 is the firstGid of another tileset
+ *
+ * 1. localId of that tile: 75 - 1 = 74
+ * 2. col: 74 % 24 = 2
+ * 3. row: 74 / 24 = 3.03 to int = 3
+ * 4. return a rectangle with the size
+ *  {
+ *      x = col * tileWidth  = 2 * 16 = 32
+ *      y = row * tileHeight = 3 * 32 = 96
+ *      width = 16
+ *      height = 32
+ *  }
+ */
+Rectangle MapModule::SourceRectForGid(const TilesetInfo &ts, int gid) const {
+    const int localId = gid - ts.firstGid;
+    const int col = localId % ts.columns;
+    const int row = localId / ts.columns;
     return {
         static_cast<float>(col * ts.tileWidth),
         static_cast<float>(row * ts.tileHeight),
@@ -93,23 +124,44 @@ void MapModule::BuildDrawList() {
     for (const auto &layer : tilemap.layers) {
         for (int y = 0; y < layer.height; y++) {
             for (int x = 0; x < layer.width; x++) {
-                const int gid = layer.data[y * layer.width + x];
+                /*
+                 * Our layer.data is not a 2d array, it's just a long list of gids for tiles,
+                 * so to find which tile gid we need to draw on a 2d grid we can use the formula below.
+                 * y -> column
+                 * x -> row
+                 * layer.width -> how wide / long is "1 row"
+                 *
+                 * Example:
+                 * We want the tile from row 2 col 2, but layer.data is a just a long list
+                 *
+                 * We calculate: 2 x 30 + 2 = 62, that's the index we have to use in layer.data
+                 * to get that specific tile
+                 */
+                auto dataIndex = y * layer.width + x;
+                const int gid = layer.data[dataIndex];
+
+                // Ignore empty tiles
                 if (gid == 0) {
                     continue;
                 }
 
+                // Using the gid find which tileset contains the tile we got from layer.data
                 const TilesetInfo *ts = FindTileset(gid);
                 if (ts == nullptr) {
                     continue;
                 }
 
+                /*
+                 * atlas_floor-16x16 and atlas_walls_low-16x16 use 16x16 so 16 / 16 = 1 world unit
+                 * resources/tiled/atlas_walls_high-16x32 uses 16x32 so 32 / 16 = 2 world units
+                 */
                 const float widthInUnits = static_cast<float>(ts->tileWidth) / static_cast<float>(tilemap.tileWidth);
                 const float heightInUnits = static_cast<float>(ts->tileHeight) / static_cast<float>(tilemap.tileHeight);
 
-                // tall tiles (walls_high is 16x32) hang upward out of their grid cell
+                // tall tiles (e.g. walls_high) hang upward out of their grid cell
                 drawList.push_back({
                     ts->texture,
-                    SourceRectFor(*ts, gid),
+                    SourceRectForGid(*ts, gid),
                     {
                         static_cast<float>(x),
                         static_cast<float>(y) - (heightInUnits - 1.0f),
@@ -123,7 +175,12 @@ void MapModule::BuildDrawList() {
 }
 
 /*
- * Flattens every collision layer into one grid
+ * solid is resized and filled with 30 x 20 = 600 bytes, all zero
+ *
+ * Example:
+ * We have the top wall in our json map -> "data":[2, 75, 75, 75, 75, 75 ...]
+ * All of these indexes from solid[0 to 29] = 1, meaning that they're solid.
+ * Which we're going to use later for collision checking
  */
 void MapModule::BuildCollision() {
     solid.assign(static_cast<size_t>(tilemap.width) * tilemap.height, 0);

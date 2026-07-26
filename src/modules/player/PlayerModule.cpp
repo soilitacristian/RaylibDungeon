@@ -8,42 +8,43 @@ constexpr float PLAYER_SPEED = 5.0f;
 constexpr float COLLIDER_WIDTH = 0.6f;
 constexpr float COLLIDER_HEIGHT = 0.35f;
 
-PlayerModule::PlayerModule(Camera2D *camera, const MapModule *map) : targetCamera(camera), map(map), drawingData() {}
+PlayerModule::PlayerModule(Camera2D *camera, const MapModule *map)
+    : targetCamera(camera), map(map), playerDrawingData() {}
 
-PlayerModule::~PlayerModule() { UnloadTexture(drawingData.texture); }
+PlayerModule::~PlayerModule() { UnloadTexture(playerDrawingData.texture); }
 
 void PlayerModule::Start() {
-    drawingData.texture = LoadTexture("resources/playerIdle.png");
-    drawingData.position = map->FindSpawnPoint();
-    drawingData.isFlipped = 1;
-    drawingData.currentFrame = {};
-    drawingData.animationDuration = 0.5f;
-    drawingData.animationProgress = 0;
-    drawingData.frameCount = 4;
+    playerDrawingData.texture = LoadTexture("resources/playerIdle.png");
+    playerDrawingData.position = map->FindSpawnPoint();
+    playerDrawingData.isFlipped = 1;
+    playerDrawingData.currentFrame = {};
+    playerDrawingData.animationDuration = 0.5f;
+    playerDrawingData.animationProgress = 0;
+    playerDrawingData.frameCount = 4;
 }
 
 void PlayerModule::Update() {
     HandlePlayerInput();
     UpdatePlayerAnimation();
-    targetCamera->target = drawingData.position;
+    targetCamera->target = playerDrawingData.position;
 }
 
 void PlayerModule::Draw() {
-    Rectangle source = drawingData.currentFrame;
+    Rectangle source = playerDrawingData.currentFrame;
 
     const float width = source.width / WORLD_UNIT_IN_PIXELS;
     const float height = source.height / WORLD_UNIT_IN_PIXELS;
-    source.width *= drawingData.isFlipped;
+    source.width *= playerDrawingData.isFlipped;
 
     const Rectangle destination = {
-        drawingData.position.x,
-        drawingData.position.y,
+        playerDrawingData.position.x,
+        playerDrawingData.position.y,
         width,
         height,
     };
     const Vector2 origin = {width * 0.5f, height};
 
-    DrawTexturePro(drawingData.texture, source, destination, origin, 0.0f, WHITE);
+    DrawTexturePro(playerDrawingData.texture, source, destination, origin, 0.0f, WHITE);
 }
 
 void PlayerModule::HandlePlayerInput() {
@@ -51,11 +52,11 @@ void PlayerModule::HandlePlayerInput() {
 
     if (IsKeyDown(KEY_A)) {
         direction.x -= 1.0f;
-        drawingData.isFlipped = -1;
+        playerDrawingData.isFlipped = -1;
     }
     if (IsKeyDown(KEY_D)) {
         direction.x += 1.0f;
-        drawingData.isFlipped = 1;
+        playerDrawingData.isFlipped = 1;
     }
     if (IsKeyDown(KEY_W)) {
         direction.y -= 1.0f;
@@ -68,6 +69,21 @@ void PlayerModule::HandlePlayerInput() {
         return;
     }
 
+    /*
+     * Pythagorean Theorem Example:
+     * 1. hold W (we want to go up)
+     * 2. x = 0, y = -1
+     * 3. sqrt(0 + (-1 * -1)) -> sqrt(0 + 1) = 1
+     *
+     * a. hold W + D (we want to go diagonally up and to the right)
+     * b. x = 1, y = -1
+     * c. sqrt(1 + (-1 * -1)) -> sqrt(1 + 1) -> sqrt(2) ~= 1.4
+     *
+     * Q: how does this help us?
+     * A: we move at the same speed in all directions, including diagonally,
+     *    without this we'd move faster diagonally because up and right (let's say 1 unit) have the same length,
+     *    but when you move diagonally up and right you'd actaully move 1.4 units that frame
+     */
     const float length = sqrtf(direction.x * direction.x + direction.y * direction.y);
     const float step = PLAYER_SPEED * GetFrameTime() / length;
     MoveWithCollisionCheck({direction.x * step, direction.y * step});
@@ -75,18 +91,35 @@ void PlayerModule::HandlePlayerInput() {
 
 void PlayerModule::UpdatePlayerAnimation() {
     // fmodf is basically % for floats
-    drawingData.animationProgress =
-        fmodf(drawingData.animationProgress + GetFrameTime(), drawingData.animationDuration);
+    playerDrawingData.animationProgress =
+        fmodf(playerDrawingData.animationProgress + GetFrameTime(), playerDrawingData.animationDuration);
 
-    const float frameWidth = drawingData.texture.width / static_cast<float>(drawingData.frameCount);
-    const float frameHeight = static_cast<float>(drawingData.texture.height);
+    const float frameWidth = playerDrawingData.texture.width / static_cast<float>(playerDrawingData.frameCount);
+    const float frameHeight = static_cast<float>(playerDrawingData.texture.height);
 
-    const int index = static_cast<int>((drawingData.animationProgress / drawingData.animationDuration) *
-                                       static_cast<float>(drawingData.frameCount));
+    /*
+     * TODO: calculate the frameCount differently, in a way that would let us know how many frames
+     * are in that texture / image without hard-coding it, so changing player animations hot-swappable
+     */
+    const int index = static_cast<int>((playerDrawingData.animationProgress / playerDrawingData.animationDuration) *
+                                       static_cast<float>(playerDrawingData.frameCount));
 
-    drawingData.currentFrame = {index * frameWidth, 0.0f, frameWidth, frameHeight};
+    playerDrawingData.currentFrame = {index * frameWidth, 0.0f, frameWidth, frameHeight};
 }
 
+/*
+ * Create a colider at the bottom / at the feet and in the middle
+ * COLLIDER_WIDTH = 0.6f;
+ * COLLIDER_HEIGHT = 0.35f;
+ *
+ * Example:
+ * x -> 0.6 * 0.5 = 0.3 (in the middle)
+ * y -> 0.35 (at the bottom)
+ * width -> 0.6
+ * height -> 0.35
+ *
+ * So the colider is not the entire tile, but it's just a small rectangle
+ */
 Rectangle PlayerModule::ColliderAt(Vector2 position) const {
     return {
         position.x - COLLIDER_WIDTH * 0.5f,
@@ -96,6 +129,26 @@ Rectangle PlayerModule::ColliderAt(Vector2 position) const {
     };
 }
 
+/*
+ * Checks collision with solid tiles.
+ * Let's say that the Player is at position(15.5, 10.0)
+ *
+ * Example:
+ * box.x = 15.5 - 0.3  = 15.2
+ * box.y = 10.0 - 0.35 = 9.65
+ * box.width  = 0.6
+ * box.height = 0.35
+ *
+ * So collision range is true for X from 15.2 -> 15.8
+ * And for Y 9.65 -> 10.0 (position + colider size)
+ *
+ * minX = floor(15.2)    = 15
+ * maxX = ceil(15.8) - 1 = 16 - 1 = 15
+ * minY = floor(9.65)    = 9
+ * maxY = ceil(10.0) - 1 = 10 - 1 = 9
+ *
+ * then check if that position is solid
+ */
 bool PlayerModule::CollidesAt(Vector2 position) const {
     const Rectangle box = ColliderAt(position);
 
@@ -114,18 +167,21 @@ bool PlayerModule::CollidesAt(Vector2 position) const {
     return false;
 }
 
+/*
+ * Check if our next move is going to collide with something solid
+ */
 void PlayerModule::MoveWithCollisionCheck(Vector2 delta) {
-    Vector2 next = drawingData.position;
+    Vector2 nextPosition = playerDrawingData.position;
 
-    next.x += delta.x;
-    if (CollidesAt(next)) {
-        next.x = drawingData.position.x;
+    nextPosition.x += delta.x;
+    if (CollidesAt(nextPosition)) {
+        nextPosition.x = playerDrawingData.position.x;
     }
 
-    next.y += delta.y;
-    if (CollidesAt(next)) {
-        next.y = drawingData.position.y;
+    nextPosition.y += delta.y;
+    if (CollidesAt(nextPosition)) {
+        nextPosition.y = playerDrawingData.position.y;
     }
 
-    drawingData.position = next;
+    playerDrawingData.position = nextPosition;
 }

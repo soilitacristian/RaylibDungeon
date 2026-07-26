@@ -12,7 +12,7 @@ class PlayerModule : public GameModule {
     void Draw() override;
 
   private:
-    PlayerDrawingData drawingData;
+    PlayerDrawingData playerDrawingData;
     Camera2D *targetCamera;
     const MapModule *map;
 
