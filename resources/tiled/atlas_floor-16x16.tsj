@@ -1,0 +1,15 @@
+{ "columns":7,
+ "image":"atlas_floor-16x16.png",
+ "imageheight":112,
+ "imagewidth":112,
+ "margin":0,
+ "name":"atlas_floor-16x16",
+ "spacing":0,
+ "tilecount":49,
+ "tiledversion":"1.12.2",
+ "tileheight":16,
+ "tilewidth":16,
+ "transparentcolor":"#ff00ff",
+ "type":"tileset",
+ "version":"1.10"
+}

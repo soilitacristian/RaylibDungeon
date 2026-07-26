@@ -1,3 +1,4 @@
+#include "modules/WorldUnits.h"
 #include "modules/map/MapModule.h"
 #include "modules/player/PlayerModule.h"
 #include "raylib.h"
@@ -7,12 +8,17 @@
  */
 constexpr int REFERENCE_WINDOW_WIDTH = 1920;
 constexpr int REFERNECE_WINDOW_HEIGHT = 1080;
-constexpr float WORLD_UNIT_IN_PIXELS = 16.0f;
+constexpr float DISPLAY_SCALE = 4.0f;
 
 /*
  * FUNCTIONS
  */
-void FitCameraToScreen(Camera2D &camera);
+void FitCameraToScreen(Camera2D &camera) {
+    const float referenceZoom = WORLD_UNIT_IN_PIXELS * DISPLAY_SCALE;
+    camera.zoom = referenceZoom * (static_cast<float>(GetScreenHeight()) / REFERNECE_WINDOW_HEIGHT);
+    camera.offset = {GetScreenWidth() / 2.0f, GetScreenHeight() / 2.0f};
+}
+
 /*
  * MAIN LOOP
  */
@@ -30,8 +36,8 @@ int main() {
     camera.rotation = 0.0f;
     FitCameraToScreen(camera);
     {
-        auto player = PlayerModule(&camera);
         auto map = MapModule();
+        auto player = PlayerModule(&camera, &map);
 
         map.Start();
         player.Start();
@@ -60,9 +66,4 @@ int main() {
     }
     CloseWindow();
     return 0;
-}
-
-void FitCameraToScreen(Camera2D &camera) {
-    camera.zoom = WORLD_UNIT_IN_PIXELS * (static_cast<float>(GetScreenHeight()) / REFERNECE_WINDOW_HEIGHT);
-    camera.offset = {GetScreenWidth() / 2.0f, GetScreenHeight() / 2.0f};
 }

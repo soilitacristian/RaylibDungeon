@@ -1,0 +1,15 @@
+{ "columns":12,
+ "image":"atlas_walls_low-16x16.png",
+ "imageheight":64,
+ "imagewidth":192,
+ "margin":0,
+ "name":"atlas_walls_low-16x16",
+ "spacing":0,
+ "tilecount":48,
+ "tiledversion":"1.12.2",
+ "tileheight":16,
+ "tilewidth":16,
+ "transparentcolor":"#ff00ff",
+ "type":"tileset",
+ "version":"1.10"
+}
