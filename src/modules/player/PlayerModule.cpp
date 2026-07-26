@@ -45,6 +45,9 @@ void PlayerModule::Draw() {
     const Vector2 origin = {width * 0.5f, height};
 
     DrawTexturePro(playerDrawingData.texture, source, destination, origin, 0.0f, WHITE);
+    if (map->IsDebugCollisionsEnabled()) {
+        DrawRectangleLinesEx(ColliderAt(playerDrawingData.position), 0.04f, GREEN);
+    }
 }
 
 void PlayerModule::HandlePlayerInput() {

@@ -202,11 +202,19 @@ void MapModule::Start() {
     BuildCollision();
 }
 
-void MapModule::Update() {}
+void MapModule::Update() {
+    if (IsKeyPressed(KEY_F1)) {
+        debugCollisions = !debugCollisions;
+    }
+}
 
 void MapModule::Draw() {
     for (const auto &tile : drawList) {
         DrawTexturePro(tile.texture, tile.source, tile.dest, {0, 0}, 0.0f, WHITE);
+    }
+
+    if (debugCollisions) {
+        DrawDebugCollisions();
     }
 }
 
@@ -245,4 +253,18 @@ Vector2 MapModule::FindSpawnPoint() const {
     }
 
     return best;
+}
+
+void MapModule::DrawDebugCollisions() const {
+    constexpr float thickness = 0.04f;
+
+    for (int y = 0; y < tilemap.height; y++) {
+        for (int x = 0; x < tilemap.width; x++) {
+            if (!IsSolid(x, y)) {
+                continue;
+            }
+            const Rectangle cell = {static_cast<float>(x), static_cast<float>(y), 1.0f, 1.0f};
+            DrawRectangleLinesEx(cell, thickness, RED);
+        }
+    }
 }
