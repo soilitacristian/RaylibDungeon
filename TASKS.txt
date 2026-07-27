@@ -1,0 +1,91 @@
+TODOs [T<number>]:
+
+--------------------------------------------------------------------------------------------------------------
+T1. Calculate the animation frameCount differently, in a way that would let us know how many frames
+    are in that texture / image without hard-coding it, so changing player animations hot-swappable.
+--------------------------------------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------------------------------------
+T2.  Design a better world with better layer management.
+
+    T2.1.    Maybe instead of relying on the walls layer for collisions we can create a dedicated layer
+            only for collisions. So if we want to maybe have secret doors behind walls or other stuff
+            we're not limited by bad world design.
+
+    T2.2.   The player needs to somehow be rendered between the layers. If there's a tall wall in the middle
+            of the world or he enters a room, the player should be rendered inside the room. And if he's
+            hugging the bottom wall he should be rendered behind it but still visible, same for pillars.
+            Bottom half of the pillar should have collision but for the top half the player should be able
+            to walk behind it and be covered by it.
+
+    T2.3.   Add incremental zoom, either by keybind or mouse-wheel, capped at a max and a min.
+--------------------------------------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------------------------------------
+T3.  Improve animation system and replace current player with one from the new tileset.
+
+    T3.1.   Add more animations. For example a walking, death, idle animation.
+
+    T3.2.   Make animations hot-swappable by designing the animation system to determine by itself
+            how many frames are in a single tileset that contains multiple frames OR if the frames
+            are in different files, auto-load all of them and then iterate through them. Most probably
+            a function named something like ParseAnimationFrames.
+--------------------------------------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------------------------------------
+T4. Implement a basic start menu.
+--------------------------------------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------------------------------------
+T5. Object layer support: read the objectgroup from the json map.
+
+    T5.1.   Parse objectgroup layers: id, name, class, x, y, width, height, custom properties.
+
+    T5.2.   Convert object pixel coords to world units. Note that rectangle objects anchor
+            top-left but TILE objects (those with a gid) anchor BOTTOM-left
+
+    T5.3.   Replace FindSpawnPoint() with a named "player" object so spawn is a design decision made
+            in Tiled, not an extra calculation.
+--------------------------------------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------------------------------------
+T6. Entity system support. Player is currently a module. But enemies, pickups, doors, interactables all need
+    the same position / collider / sprite / animation logic. Everything can be done using objects in Tiled.
+    Then we just spawn stuff exactly where it needs to be.
+
+    T6.1.   Common entity struct.
+
+    T6.2.   Entities spawned from T5's object layer rather than hardcoded.
+
+    T6.3.   Y-sort entities? So that enemies don't render on top of eachother but are somehow layered.
+--------------------------------------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------------------------------------
+T7. Add a game state machine.
+--------------------------------------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------------------------------------
+T8. Input abstraction. IsKeyDown(KEY_A) is hardcoded inside PlayerModule. Some kind of action abstraction
+    would let us more easily offer rebinds like: ("move_left" -> key)
+--------------------------------------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------------------------------------
+T10.    Map hot-reload. Maybe a keybind that re-runs LoadTilemap and the two Build steps.
+        Just to improve dev workflow and eliminate annoying alt tabbing, re-running, re-building, etc.
+--------------------------------------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------------------------------------
+T11. Add Audio. Call InitAudioDevice(), footstep / pickup / door SFX, one ambient track.
+--------------------------------------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------------------------------------
+T13. Individual Config files per-dev for the debugging / final polished end-user Config
+--------------------------------------------------------------------------------------------------------------
+
+
+FIXMEs [F<number>]:
+--------------------------------------------------------------------------------------------------------------
+F1. Resource paths are relative to the current working directory, which differs between the IDE, the
+    terminal, and the build folder. Call ChangeDirectory(GetApplicationDirectory()) at the top of main
+    and have CMake copy resources/ next to the binary.
+--------------------------------------------------------------------------------------------------------------
