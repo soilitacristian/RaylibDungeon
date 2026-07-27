@@ -23,12 +23,8 @@ void FitCameraToScreen(Camera2D &camera) {
  * MAIN LOOP
  */
 int main() {
-    // TODO: separate end-user config from debug config
-    // debug config -> windowed and configurable using env variables
-    // end-user -> fullscreen with good defaults
     SetConfigFlags(FLAG_WINDOW_RESIZABLE);
 
-    // TODO: In the future add a function to initialize window properties based on user configs
     InitWindow(REFERENCE_WINDOW_WIDTH / 2, REFERNECE_WINDOW_HEIGHT / 2, "Raylib Dungeon");
     SetTargetFPS(240);
 

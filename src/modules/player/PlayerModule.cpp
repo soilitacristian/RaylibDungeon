@@ -100,10 +100,6 @@ void PlayerModule::UpdatePlayerAnimation() {
     const float frameWidth = playerDrawingData.texture.width / static_cast<float>(playerDrawingData.frameCount);
     const float frameHeight = static_cast<float>(playerDrawingData.texture.height);
 
-    /*
-     * TODO: calculate the frameCount differently, in a way that would let us know how many frames
-     * are in that texture / image without hard-coding it, so changing player animations hot-swappable
-     */
     const int index = static_cast<int>((playerDrawingData.animationProgress / playerDrawingData.animationDuration) *
                                        static_cast<float>(playerDrawingData.frameCount));
 
