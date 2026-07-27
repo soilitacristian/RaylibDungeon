@@ -1,6 +1,5 @@
 ﻿#include "PlayerModule.h"
 #include "../WorldUnits.h"
-#include "PlayerDrawingData.h"
 #include "raylib.h"
 #include <cmath>
 
@@ -15,7 +14,7 @@ PlayerModule::~PlayerModule() { animator.Dispose(); }
 void PlayerModule::Start() {
     position = map->FindSpawnPoint();
 
-    unordered_map<string, SpriteAnimationDefinition> animations;
+    std::unordered_map<std::string, SpriteAnimationDefinition> animations;
     animations["idle_down"] = {"resources/animations/player/orc2_idle_full.png", 1, {0, 0, 256, 64}, 4};
     animations["idle_up"] = {"resources/animations/player/orc2_idle_full.png", 1, {0, 64, 256, 64}, 4};
     animations["idle_left"] = {"resources/animations/player/orc2_idle_full.png", 1, {0, 128, 256, 64}, 4};
@@ -48,6 +47,10 @@ void PlayerModule::Draw() {
     };
     const Vector2 origin = {width * 0.5f, height * 0.5f};
 
+    /*
+     * FIXME: player collider is now in the middle of the sprite which might not be optimal
+     * having it start from waist to feet should look better, needs testing
+     */
     DrawTexturePro(animatorResult->texture, animatorResult->sourceRect, destination, origin, 0.0f, WHITE);
     if (map->IsDebugCollisionsEnabled()) {
         DrawRectangleLinesEx(ColliderAt(position), 0.04f, GREEN);

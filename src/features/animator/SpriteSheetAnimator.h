@@ -1,15 +1,10 @@
 ﻿#pragma once
 #include "raylib.h"
-
-#include <map>
 #include <string>
 #include <unordered_map>
-#include <vector>
-
-using namespace std;
 
 struct SpriteAnimationDefinition {
-    string resourcePath;
+    std::string resourcePath;
     float duration;
     Rectangle textureRect;
     int frameCount;
@@ -23,21 +18,21 @@ struct AnimatorResult {
 class SpriteSheetAnimator {
   public:
     SpriteSheetAnimator();
-    void Initialize(const unordered_map<string, SpriteAnimationDefinition> &animations);
+    void Initialize(const std::unordered_map<std::string, SpriteAnimationDefinition> &animations);
     void Update(float deltaTime);
-    void SetDefaultAnimation(string animationIndex);
-    void PlayAnimationLoop(string animationIndex);
-    void PlayAnimationOnce(string animationIndex);
+    void SetDefaultAnimation(std::string animationIndex);
+    void PlayAnimationLoop(std::string animationIndex);
+    void PlayAnimationOnce(std::string animationIndex);
     void Dispose();
-    string GetCurrentAnimationName();
+    std::string GetCurrentAnimationName();
     AnimatorResult *GetResult();
 
   private:
-    unordered_map<string, SpriteAnimationDefinition> _definedAnimations;
-    string currentAnimationName;
+    std::unordered_map<std::string, SpriteAnimationDefinition> _definedAnimations;
+    std::string currentAnimationName;
     bool isLooping;
-    string defaultAnimationName;
+    std::string defaultAnimationName;
     float currentAnimationProgress;
-    unordered_map<string, Texture2D> loadedTextures;
+    std::unordered_map<std::string, Texture2D> loadedTextures;
     AnimatorResult result;
 };

@@ -2,7 +2,6 @@
 #include "../../features/animator/SpriteSheetAnimator.h"
 #include "../GameModule.h"
 #include "../map/MapModule.h"
-#include "PlayerDrawingData.h"
 
 class PlayerModule : public GameModule {
   public:

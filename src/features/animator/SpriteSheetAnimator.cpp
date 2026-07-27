@@ -1,25 +1,24 @@
 ﻿#include "SpriteSheetAnimator.h"
 
-#include "raymath.h"
-
-#include <iostream>
-
 SpriteSheetAnimator::SpriteSheetAnimator() {
     currentAnimationName = "";
     isLooping = false;
     currentAnimationProgress = 0;
 }
-void SpriteSheetAnimator::Initialize(const unordered_map<string, SpriteAnimationDefinition> &animations) {
+
+void SpriteSheetAnimator::Initialize(const std::unordered_map<std::string, SpriteAnimationDefinition> &animations) {
     _definedAnimations = animations;
 }
-void SpriteSheetAnimator::SetDefaultAnimation(string animationIndex) {
+
+void SpriteSheetAnimator::SetDefaultAnimation(std::string animationIndex) {
     if (!_definedAnimations.count(animationIndex)) {
         return;
     }
 
     defaultAnimationName = animationIndex;
 }
-void SpriteSheetAnimator::PlayAnimationLoop(string animationIndex) {
+
+void SpriteSheetAnimator::PlayAnimationLoop(std::string animationIndex) {
     if (!_definedAnimations.count(animationIndex)) {
         return;
     }
@@ -27,7 +26,8 @@ void SpriteSheetAnimator::PlayAnimationLoop(string animationIndex) {
     currentAnimationName = animationIndex;
     isLooping = true;
 }
-void SpriteSheetAnimator::PlayAnimationOnce(string animationIndex) {
+
+void SpriteSheetAnimator::PlayAnimationOnce(std::string animationIndex) {
     if (!_definedAnimations.count(animationIndex)) {
         return;
     }
@@ -35,14 +35,18 @@ void SpriteSheetAnimator::PlayAnimationOnce(string animationIndex) {
     currentAnimationName = animationIndex;
     isLooping = false;
 }
+
 void SpriteSheetAnimator::Dispose() {
     for (auto x : loadedTextures) {
         UnloadTexture(x.second);
     }
     loadedTextures.clear();
 }
-string SpriteSheetAnimator::GetCurrentAnimationName() { return currentAnimationName; }
+
+std::string SpriteSheetAnimator::GetCurrentAnimationName() { return currentAnimationName; }
+
 AnimatorResult *SpriteSheetAnimator::GetResult() { return &result; }
+
 void SpriteSheetAnimator::Update(float deltaTime) {
     if (!_definedAnimations.count(currentAnimationName)) {
         return;
