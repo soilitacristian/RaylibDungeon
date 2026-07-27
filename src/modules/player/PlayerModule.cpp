@@ -8,68 +8,101 @@ constexpr float PLAYER_SPEED = 5.0f;
 constexpr float COLLIDER_WIDTH = 0.6f;
 constexpr float COLLIDER_HEIGHT = 0.35f;
 
-PlayerModule::PlayerModule(Camera2D *camera, const MapModule *map)
-    : targetCamera(camera), map(map), playerDrawingData() {}
+PlayerModule::PlayerModule(Camera2D *camera, const MapModule *map) : targetCamera(camera), map(map) {}
 
-PlayerModule::~PlayerModule() { UnloadTexture(playerDrawingData.texture); }
+PlayerModule::~PlayerModule() { animator.Dispose(); }
 
 void PlayerModule::Start() {
-    playerDrawingData.texture = LoadTexture("resources/playerIdle.png");
-    playerDrawingData.position = map->FindSpawnPoint();
-    playerDrawingData.isFlipped = 1;
-    playerDrawingData.currentFrame = {};
-    playerDrawingData.animationDuration = 0.5f;
-    playerDrawingData.animationProgress = 0;
-    playerDrawingData.frameCount = 4;
+    position = map->FindSpawnPoint();
+
+    unordered_map<string, SpriteAnimationDefinition> animations;
+    animations["idle_down"] = {"resources/animations/player/orc2_idle_full.png", 1, {0, 0, 256, 64}, 4};
+    animations["idle_up"] = {"resources/animations/player/orc2_idle_full.png", 1, {0, 64, 256, 64}, 4};
+    animations["idle_left"] = {"resources/animations/player/orc2_idle_full.png", 1, {0, 128, 256, 64}, 4};
+    animations["idle_right"] = {"resources/animations/player/orc2_idle_full.png", 1, {0, 192, 256, 64}, 4};
+    animations["walking_down"] = {"resources/animations/player/orc2_walk_full.png", 0.7f, {0, 0, 384, 64}, 6};
+    animations["walking_up"] = {"resources/animations/player/orc2_walk_full.png", 0.7f, {0, 64, 384, 64}, 6};
+    animations["walking_left"] = {"resources/animations/player/orc2_walk_full.png", 0.7f, {0, 128, 384, 64}, 6};
+    animations["walking_right"] = {"resources/animations/player/orc2_walk_full.png", 0.7f, {0, 192, 384, 64}, 6};
+    animator.Initialize(animations);
+    animator.SetDefaultAnimation("idle");
 }
 
 void PlayerModule::Update() {
+    animator.Update(GetFrameTime());
     HandlePlayerInput();
-    UpdatePlayerAnimation();
-    targetCamera->target = playerDrawingData.position;
+    targetCamera->target = position;
 }
 
 void PlayerModule::Draw() {
-    Rectangle source = playerDrawingData.currentFrame;
+    auto animatorResult = animator.GetResult();
 
-    const float width = source.width / WORLD_UNIT_IN_PIXELS;
-    const float height = source.height / WORLD_UNIT_IN_PIXELS;
-    source.width *= playerDrawingData.isFlipped;
+    const float width = animatorResult->sourceRect.width / WORLD_UNIT_IN_PIXELS;
+    const float height = animatorResult->sourceRect.height / WORLD_UNIT_IN_PIXELS;
 
     const Rectangle destination = {
-        playerDrawingData.position.x,
-        playerDrawingData.position.y,
+        position.x,
+        position.y,
         width,
         height,
     };
-    const Vector2 origin = {width * 0.5f, height};
+    const Vector2 origin = {width * 0.5f, height * 0.5f};
 
-    DrawTexturePro(playerDrawingData.texture, source, destination, origin, 0.0f, WHITE);
+    DrawTexturePro(animatorResult->texture, animatorResult->sourceRect, destination, origin, 0.0f, WHITE);
     if (map->IsDebugCollisionsEnabled()) {
-        DrawRectangleLinesEx(ColliderAt(playerDrawingData.position), 0.04f, GREEN);
+        DrawRectangleLinesEx(ColliderAt(position), 0.04f, GREEN);
     }
 }
 
 void PlayerModule::HandlePlayerInput() {
-    Vector2 direction = {};
-
+    playerInput = {};
     if (IsKeyDown(KEY_A)) {
-        direction.x -= 1.0f;
-        playerDrawingData.isFlipped = -1;
+        playerInput.x -= 1.0f;
     }
     if (IsKeyDown(KEY_D)) {
-        direction.x += 1.0f;
-        playerDrawingData.isFlipped = 1;
+        playerInput.x += 1.0f;
     }
     if (IsKeyDown(KEY_W)) {
-        direction.y -= 1.0f;
+        playerInput.y -= 1.0f;
     }
     if (IsKeyDown(KEY_S)) {
-        direction.y += 1.0f;
+        playerInput.y += 1.0f;
     }
 
-    if (direction.x == 0.0f && direction.y == 0.0f) {
+    if (playerDirection.x > 0) {
+        if (animator.GetCurrentAnimationName() != "idle_right")
+            animator.PlayAnimationLoop("idle_right");
+    } else if (playerDirection.x < 0) {
+        if (animator.GetCurrentAnimationName() != "idle_left")
+            animator.PlayAnimationLoop("idle_left");
+    }
+    if (playerDirection.y > 0) {
+        if (animator.GetCurrentAnimationName() != "idle_down")
+            animator.PlayAnimationLoop("idle_down");
+    } else if (playerDirection.y < 0) {
+        if (animator.GetCurrentAnimationName() != "idle_up")
+            animator.PlayAnimationLoop("idle_up");
+    }
+
+    if (playerInput.x == 0.0f && playerInput.y == 0.0f) {
         return;
+    }
+
+    playerDirection = playerInput;
+
+    if (playerDirection.x > 0) {
+        if (animator.GetCurrentAnimationName() != "walking_right")
+            animator.PlayAnimationLoop("walking_right");
+    } else if (playerDirection.x < 0) {
+        if (animator.GetCurrentAnimationName() != "walking_left")
+            animator.PlayAnimationLoop("walking_left");
+    }
+    if (playerDirection.y > 0) {
+        if (animator.GetCurrentAnimationName() != "walking_down")
+            animator.PlayAnimationLoop("walking_down");
+    } else if (playerDirection.y < 0) {
+        if (animator.GetCurrentAnimationName() != "walking_up")
+            animator.PlayAnimationLoop("walking_up");
     }
 
     /*
@@ -87,23 +120,9 @@ void PlayerModule::HandlePlayerInput() {
      *    without this we'd move faster diagonally because up and right (let's say 1 unit) have the same length,
      *    but when you move diagonally up and right you'd actaully move 1.4 units that frame
      */
-    const float length = sqrtf(direction.x * direction.x + direction.y * direction.y);
+    const float length = sqrtf(playerInput.x * playerInput.x + playerInput.y * playerInput.y);
     const float step = PLAYER_SPEED * GetFrameTime() / length;
-    MoveWithCollisionCheck({direction.x * step, direction.y * step});
-}
-
-void PlayerModule::UpdatePlayerAnimation() {
-    // fmodf is basically % for floats
-    playerDrawingData.animationProgress =
-        fmodf(playerDrawingData.animationProgress + GetFrameTime(), playerDrawingData.animationDuration);
-
-    const float frameWidth = playerDrawingData.texture.width / static_cast<float>(playerDrawingData.frameCount);
-    const float frameHeight = static_cast<float>(playerDrawingData.texture.height);
-
-    const int index = static_cast<int>((playerDrawingData.animationProgress / playerDrawingData.animationDuration) *
-                                       static_cast<float>(playerDrawingData.frameCount));
-
-    playerDrawingData.currentFrame = {index * frameWidth, 0.0f, frameWidth, frameHeight};
+    MoveWithCollisionCheck({playerInput.x * step, playerInput.y * step});
 }
 
 /*
@@ -170,17 +189,17 @@ bool PlayerModule::CollidesAt(Vector2 position) const {
  * Check if our next move is going to collide with something solid
  */
 void PlayerModule::MoveWithCollisionCheck(Vector2 delta) {
-    Vector2 nextPosition = playerDrawingData.position;
+    Vector2 nextPosition = position;
 
     nextPosition.x += delta.x;
     if (CollidesAt(nextPosition)) {
-        nextPosition.x = playerDrawingData.position.x;
+        nextPosition.x = position.x;
     }
 
     nextPosition.y += delta.y;
     if (CollidesAt(nextPosition)) {
-        nextPosition.y = playerDrawingData.position.y;
+        nextPosition.y = position.y;
     }
 
-    playerDrawingData.position = nextPosition;
+    position = nextPosition;
 }
