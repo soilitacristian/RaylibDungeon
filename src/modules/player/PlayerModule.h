@@ -1,4 +1,5 @@
 ﻿#pragma once
+#include "../../features/animator/SpriteSheetAnimator.h"
 #include "../GameModule.h"
 #include "../map/MapModule.h"
 #include "PlayerDrawingData.h"
@@ -12,12 +13,13 @@ class PlayerModule : public GameModule {
     void Draw() override;
 
   private:
-    PlayerDrawingData playerDrawingData;
+    SpriteSheetAnimator animator;
     Camera2D *targetCamera;
     const MapModule *map;
-
+    Vector2 position;
+    Vector2 playerDirection = {1, 0};
+    Vector2 playerInput = {};
     void HandlePlayerInput();
-    void UpdatePlayerAnimation();
 
     Rectangle ColliderAt(Vector2 position) const;
     bool CollidesAt(Vector2 position) const;
