@@ -1,4 +1,5 @@
 ﻿#include "MapModule.h"
+#include <cstdint>
 #include <filesystem>
 #include <fstream>
 #include <nlohmann/json.hpp>
@@ -54,11 +55,11 @@ Tilemap MapModule::LoadTilemap(const std::string &tilemapPath) {
     }
 
     for (auto &layerJson : json["layers"]) {
-        TileLayer layer;                                        // example from dungeon.json
-        layer.name = layerJson["name"];                         // "name":"walls",
-        layer.width = layerJson["width"];                       // "width":30,
-        layer.height = layerJson["height"];                     // "height":20,
-        layer.data = layerJson["data"].get<std::vector<int>>(); // "data":[2, 75, 75 ... ],
+        TileLayer layer;                                                  // example from dungeon.json
+        layer.name = layerJson["name"];                                   // "name":"walls",
+        layer.width = layerJson["width"];                                 // "width":30,
+        layer.height = layerJson["height"];                               // "height":20,
+        layer.data = layerJson["data"].get<std::vector<std::uint32_t>>(); // "data":[2, 75, 75 ... ],
         layer.isCollision = (layer.name == "walls");
         map.layers.push_back(std::move(layer));
     }
@@ -119,6 +120,80 @@ Rectangle MapModule::SourceRectForGid(const TilesetInfo &ts, int gid) const {
     };
 }
 
+/*
+ * Reference table for Tiled -> Raylib flipping logic:
+ * D: diagonal flip -> also meaning rotation
+ * H: horizontal flip
+ * V: vertical flip
+ * rot: rotate
+ *
+ * A B / C D is actually: A B
+ *                        C D
+ *
+ * ┌─────┬─────┬─────┬───────────────────────────────┬───────────────────┐
+ * │  D  │  H  │  V  │ corners after Tiled's changes │ raylib equivalent │
+ * ├─────┼─────┼─────┼───────────────────────────────┼───────────────────┤
+ * │ 0   │ 0   │ 0   │ A B / C D                     │ rot 0             │
+ * ├─────┼─────┼─────┼───────────────────────────────┼───────────────────┤
+ * │ 0   │ 1   │ 0   │ B A / D C                     │ rot 0, flipX      │
+ * ├─────┼─────┼─────┼───────────────────────────────┼───────────────────┤
+ * │ 0   │ 0   │ 1   │ C D / A B                     │ rot 0, flipY      │
+ * ├─────┼─────┼─────┼───────────────────────────────┼───────────────────┤
+ * │ 0   │ 1   │ 1   │ D C / B A                     │ rot 180           │
+ * ├─────┼─────┼─────┼───────────────────────────────┼───────────────────┤
+ * │ 1   │ 1   │ 0   │ C A / D B                     │ rot 90            │
+ * ├─────┼─────┼─────┼───────────────────────────────┼───────────────────┤
+ * │ 1   │ 0   │ 1   │ B D / A C                     │ rot 270           │
+ * ├─────┼─────┼─────┼───────────────────────────────┼───────────────────┤
+ * │ 1   │ 0   │ 0   │ A C / B D                     │ rot 90, flipY     │
+ * ├─────┼─────┼─────┼───────────────────────────────┼───────────────────┤
+ * │ 1   │ 1   │ 1   │ D B / C A                     │ rot 270, flipY    │
+ * └─────┴─────┴─────┴───────────────────────────────┴───────────────────┘
+ */
+TileTransform DecodeTileFlags(std::uint32_t rawGid) {
+    /*
+     * We test the rawGid using the masks and check what bits are set to 1
+     *
+     * & (AND) is just like the && we use in IF statements
+     * So we're checking if the rawGid which contains flip information
+     * has 1 in the bit positions meant for specific flips
+     */
+    const bool hFlip = (rawGid & TILE_FLIP_HORIZONTAL) != 0;
+    const bool vFlip = (rawGid & TILE_FLIP_VERTICAL) != 0;
+    const bool dFlip = (rawGid & TILE_FLIP_DIAGONAL) != 0;
+
+    /*
+     * Diagonal flipping is hard man, the math cooked me, too stupid for this, good luck
+     *
+     * https://en.wikipedia.org/wiki/Transpose
+     *
+     * original     H (left-right)      V (top-bottom)      D (across the main diagonal)
+     *   XXX            XXX                ...                  XX.
+     *   X..            ..X                X..                  X..
+     *   ...            ...                XXX                  X..
+     */
+    if (!dFlip) {
+        if (hFlip && vFlip) {
+            return {180.0f, false, false};
+        }
+        return {0.0f, hFlip, vFlip};
+    }
+
+    if (hFlip && vFlip) {
+        return {270.0f, false, true};
+    }
+
+    if (hFlip) {
+        return {90.0f, false, false};
+    }
+
+    if (vFlip) {
+        return {270.0f, false, false};
+    }
+
+    return {90.0f, false, true};
+}
+
 // Resolves every tile once. Layer order is preserved, so draw order is insertion order
 void MapModule::BuildDrawList() {
     for (const auto &layer : tilemap.layers) {
@@ -138,17 +213,30 @@ void MapModule::BuildDrawList() {
                  * to get that specific tile
                  */
                 auto dataIndex = y * layer.width + x;
-                const int gid = layer.data[dataIndex];
+                const std::uint32_t rawGid = layer.data[dataIndex];
 
                 // Ignore empty tiles
-                if (gid == 0) {
+                if (rawGid == 0) {
                     continue;
                 }
+
+                // Extract the real gid of the tile from the rawGid
+                const std::uint32_t gid = rawGid & TILE_GID_MASK;
 
                 // Using the gid find which tileset contains the tile we got from layer.data
                 const TilesetInfo *ts = FindTileset(gid);
                 if (ts == nullptr) {
                     continue;
+                }
+
+                const TileTransform transform = DecodeTileFlags(rawGid);
+
+                Rectangle source = SourceRectForGid(*ts, gid);
+                if (transform.flipX) {
+                    source.width = -source.width;
+                }
+                if (transform.flipY) {
+                    source.height = -source.height;
                 }
 
                 /*
@@ -158,17 +246,21 @@ void MapModule::BuildDrawList() {
                 const float widthInUnits = static_cast<float>(ts->tileWidth) / static_cast<float>(tilemap.tileWidth);
                 const float heightInUnits = static_cast<float>(ts->tileHeight) / static_cast<float>(tilemap.tileHeight);
 
-                // tall tiles (e.g. walls_high) hang upward out of their grid cell
-                drawList.push_back({
-                    ts->texture,
-                    SourceRectForGid(*ts, gid),
-                    {
-                        static_cast<float>(x),
-                        static_cast<float>(y) - (heightInUnits - 1.0f),
-                        widthInUnits,
-                        heightInUnits,
-                    },
-                });
+                Rectangle dest = {
+                    static_cast<float>(x),
+                    static_cast<float>(y) - (heightInUnits - 1.0f),
+                    widthInUnits,
+                    heightInUnits,
+                };
+
+                Vector2 origin = {0.0f, 0.0f};
+                if (transform.rotation != 0.0f) {
+                    origin = {dest.width * 0.5f, dest.height * 0.5f};
+                    dest.x += origin.x;
+                    dest.y += origin.y;
+                }
+
+                drawList.push_back({ts->texture, source, dest, origin, transform.rotation});
             }
         }
     }
@@ -210,7 +302,7 @@ void MapModule::Update() {
 
 void MapModule::Draw() {
     for (const auto &tile : drawList) {
-        DrawTexturePro(tile.texture, tile.source, tile.dest, {0, 0}, 0.0f, WHITE);
+        DrawTexturePro(tile.texture, tile.source, tile.dest, tile.origin, tile.rotation, WHITE);
     }
 
     if (debugCollisions) {
