@@ -13,6 +13,7 @@ constexpr float DISPLAY_SCALE = 4.0f;
 constexpr float MIN_ZOOM = 0.5f;
 constexpr float MAX_ZOOM = 4.0f;
 constexpr float ZOOM_STEP = 1.1f;
+
 /*
  * FUNCTIONS
  */
