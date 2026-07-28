@@ -2,8 +2,8 @@
 #include "constants/ScreenConstants.h"
 #include "modules/map/MapModule.h"
 #include "modules/player/PlayerModule.h"
-#include "raylib.h"
 #include "modules/menu/MenuModule.h"
+#include "raylib.h"
 
 #include <cmath>
 
@@ -50,6 +50,11 @@ int main() {
     InitWindow(REFERENCE_WINDOW_WIDTH / 2, REFERENCE_WINDOW_HEIGHT / 2, "Raylib Dungeon");
     SetTargetFPS(240);
 
+    InitAudioDevice();
+    Music menuMusic = LoadMusicStream("resources/sounds/menuSong.mp3");
+    menuMusic.looping = true;
+    PlayMusicStream(menuMusic);
+    
     auto state = GameState::Menu;
     auto menu = MenuModule();
     menu.Start();
@@ -71,9 +76,11 @@ int main() {
             UpdateCameraZoom(camera, userZoom);
             switch (state) {
             case GameState::Menu:
+                UpdateMusicStream(menuMusic);
                 menu.Update();
                 switch (menu.ConsumeAction()) {
                 case MenuAction::Play:
+                    StopMusicStream(menuMusic);
                     state = GameState::Playing;
                     break;
 
@@ -120,6 +127,8 @@ int main() {
             EndDrawing();
         }
     }
+    UnloadMusicStream(menuMusic);
+    CloseAudioDevice();
     CloseWindow();
     return 0;
 }

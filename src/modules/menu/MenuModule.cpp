@@ -33,7 +33,7 @@ void MenuModule::Start() {
 
 void MenuModule::Update() {
     HandleButton(playButton, MenuAction::Play);
-    HandleButton(settingsButton, MenuAction::Settings);
+    HandleButton(settingsButton, MenuAction::Settings); 
 }
 
 void MenuModule::Draw() {
