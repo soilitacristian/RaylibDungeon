@@ -73,18 +73,22 @@ void PlayerModule::HandlePlayerInput() {
     }
 
     if (playerDirection.x > 0) {
-        if (animator.GetCurrentAnimationName() != "idle_right")
+        if (animator.GetCurrentAnimationName() != "idle_right") {
             animator.PlayAnimationLoop("idle_right");
+        }
     } else if (playerDirection.x < 0) {
-        if (animator.GetCurrentAnimationName() != "idle_left")
+        if (animator.GetCurrentAnimationName() != "idle_left") {
             animator.PlayAnimationLoop("idle_left");
+        }
     }
     if (playerDirection.y > 0) {
-        if (animator.GetCurrentAnimationName() != "idle_down")
+        if (animator.GetCurrentAnimationName() != "idle_down") {
             animator.PlayAnimationLoop("idle_down");
+        }
     } else if (playerDirection.y < 0) {
-        if (animator.GetCurrentAnimationName() != "idle_up")
+        if (animator.GetCurrentAnimationName() != "idle_up") {
             animator.PlayAnimationLoop("idle_up");
+        }
     }
 
     if (playerInput.x == 0.0f && playerInput.y == 0.0f) {
@@ -94,18 +98,22 @@ void PlayerModule::HandlePlayerInput() {
     playerDirection = playerInput;
 
     if (playerDirection.x > 0) {
-        if (animator.GetCurrentAnimationName() != "walking_right")
+        if (animator.GetCurrentAnimationName() != "walking_right") {
             animator.PlayAnimationLoop("walking_right");
+        }
     } else if (playerDirection.x < 0) {
-        if (animator.GetCurrentAnimationName() != "walking_left")
+        if (animator.GetCurrentAnimationName() != "walking_left") {
             animator.PlayAnimationLoop("walking_left");
+        }
     }
     if (playerDirection.y > 0) {
-        if (animator.GetCurrentAnimationName() != "walking_down")
+        if (animator.GetCurrentAnimationName() != "walking_down") {
             animator.PlayAnimationLoop("walking_down");
+        }
     } else if (playerDirection.y < 0) {
-        if (animator.GetCurrentAnimationName() != "walking_up")
+        if (animator.GetCurrentAnimationName() != "walking_up") {
             animator.PlayAnimationLoop("walking_up");
+        }
     }
 
     /*
@@ -122,9 +130,15 @@ void PlayerModule::HandlePlayerInput() {
      * A: we move at the same speed in all directions, including diagonally,
      *    without this we'd move faster diagonally because up and right (let's say 1 unit) have the same length,
      *    but when you move diagonally up and right you'd actaully move 1.4 units that frame
+     *
+     * Only divide by the square root when actually needed, aka for diagonal input.
+     * Otherwise it's just useless and wasted processing power every single frame
      */
-    const float length = sqrtf(playerInput.x * playerInput.x + playerInput.y * playerInput.y);
-    const float step = PLAYER_SPEED * GetFrameTime() / length;
+    const float length = playerInput.x * playerInput.x + playerInput.y * playerInput.y;
+    float step = PLAYER_SPEED * GetFrameTime();
+    if (length > 1.0f) {
+        step /= sqrtf(length);
+    }
     MoveWithCollisionCheck({playerInput.x * step, playerInput.y * step});
 }
 
