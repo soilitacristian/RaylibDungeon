@@ -16,7 +16,7 @@ struct AnimatorResult {
 };
 
 class SpriteSheetAnimator {
-  public:
+public:
     SpriteSheetAnimator();
     void Initialize(const std::unordered_map<std::string, SpriteAnimationDefinition> &animations);
     void Update(float deltaTime);
@@ -27,7 +27,7 @@ class SpriteSheetAnimator {
     std::string GetCurrentAnimationName();
     AnimatorResult *GetResult();
 
-  private:
+private:
     std::unordered_map<std::string, SpriteAnimationDefinition> _definedAnimations;
     std::string currentAnimationName;
     bool isLooping;

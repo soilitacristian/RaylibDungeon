@@ -43,9 +43,13 @@ void SpriteSheetAnimator::Dispose() {
     loadedTextures.clear();
 }
 
-std::string SpriteSheetAnimator::GetCurrentAnimationName() { return currentAnimationName; }
+std::string SpriteSheetAnimator::GetCurrentAnimationName() {
+    return currentAnimationName;
+}
 
-AnimatorResult *SpriteSheetAnimator::GetResult() { return &result; }
+AnimatorResult *SpriteSheetAnimator::GetResult() {
+    return &result;
+}
 
 void SpriteSheetAnimator::Update(float deltaTime) {
     if (!_definedAnimations.count(currentAnimationName)) {
@@ -64,11 +68,13 @@ void SpriteSheetAnimator::Update(float deltaTime) {
         }
     }
 
-    const Vector2 frameSize = {currentAnimation.textureRect.width / static_cast<float>(currentAnimation.frameCount),
-                               currentAnimation.textureRect.height};
+    const Vector2 frameSize = {
+        currentAnimation.textureRect.width / static_cast<float>(currentAnimation.frameCount),
+        currentAnimation.textureRect.height,
+    };
 
-    const int index = static_cast<int>((currentAnimationProgress / currentAnimation.duration) *
-                                       static_cast<float>(currentAnimation.frameCount));
+    auto frameIndex = currentAnimationProgress / currentAnimation.duration;
+    const int index = static_cast<int>(frameIndex * static_cast<float>(currentAnimation.frameCount));
 
     if (!loadedTextures.count(currentAnimation.resourcePath)) {
         loadedTextures[currentAnimation.resourcePath] = LoadTexture(currentAnimation.resourcePath.c_str());

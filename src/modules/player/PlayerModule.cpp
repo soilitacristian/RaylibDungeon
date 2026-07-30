@@ -9,7 +9,9 @@ constexpr float COLLIDER_HEIGHT = 0.35f;
 
 PlayerModule::PlayerModule(Camera2D *camera, const MapModule *map) : targetCamera(camera), map(map) {}
 
-PlayerModule::~PlayerModule() { animator.Dispose(); }
+PlayerModule::~PlayerModule() {
+    animator.Dispose();
+}
 
 void PlayerModule::Start() {
     position = map->FindSpawnPoint();

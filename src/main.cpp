@@ -4,7 +4,6 @@
 #include "modules/menu/MenuModule.h"
 #include "modules/player/PlayerModule.h"
 #include "raylib.h"
-
 #include <cmath>
 
 /*
