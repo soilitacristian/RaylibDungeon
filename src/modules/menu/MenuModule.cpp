@@ -17,21 +17,30 @@ void MenuModule::HandleButton(Rectangle button, MenuAction action) {
         this->pendingAction = action;
 }
 
+void MenuModule::Layout() {
+    const float screenW = GetScreenWidth();
+    const float screenH = GetScreenHeight();
+    const float scale = screenH / REFERENCE_WINDOW_HEIGHT;
+
+    scaledFontSize = scale * TEXT_FONT_SIZE;
+
+    playButton = { screenW * 0.05f,
+                   screenH / 2.0f + scale * BUTTON_HEIGHT * 2.0f,
+                   scale * BUTTON_WIDTH,
+                   scale * BUTTON_HEIGHT };
+
+    settingsButton = { screenW * 0.05f,
+                       playButton.y + playButton.height + 20.0f,
+                       scale * BUTTON_WIDTH,
+                       scale * BUTTON_HEIGHT };
+}
+
 void MenuModule::Start() {
-    const float scale = static_cast<float>(GetScreenHeight()) / REFERENCE_WINDOW_HEIGHT;
-    this->playButton.width = scale * BUTTON_WIDTH;
-    this->playButton.height = scale * BUTTON_HEIGHT;
-    this->scaledFontSize = scale * TEXT_FONT_SIZE;
-    this->playButton.x = GetScreenWidth() * 0.05f; //5% from the left of the screen offset
-    this->playButton.y = GetScreenHeight() / 2.0f + this->playButton.height * 2.0f;
-    
-    this->settingsButton.width = scale * BUTTON_WIDTH;
-    this->settingsButton.height = scale * BUTTON_HEIGHT;
-    this->settingsButton.x = GetScreenWidth() * 0.05f;
-    this->settingsButton.y = this->playButton.y + this->playButton.height + 20.0f; //20 is the gap random
+
 }
 
 void MenuModule::Update() {
+    Layout();
     HandleButton(playButton, MenuAction::Play);
     HandleButton(settingsButton, MenuAction::Settings); 
 }

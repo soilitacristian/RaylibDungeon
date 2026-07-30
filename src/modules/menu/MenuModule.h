@@ -16,6 +16,7 @@ private:
     Rectangle settingsButton{};
     MenuAction pendingAction = MenuAction::None;
 
+    void Layout();
     bool IsHovered(Rectangle button) const;
     void HandleButton(Rectangle button, MenuAction action);
 };

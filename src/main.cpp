@@ -48,6 +48,7 @@ int main() {
     SetConfigFlags(FLAG_WINDOW_RESIZABLE);
 
     InitWindow(REFERENCE_WINDOW_WIDTH / 2, REFERENCE_WINDOW_HEIGHT / 2, "Raylib Dungeon");
+    ToggleBorderlessWindowed();
     SetTargetFPS(240);
 
     InitAudioDevice();
