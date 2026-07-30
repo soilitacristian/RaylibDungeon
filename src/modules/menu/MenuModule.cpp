@@ -36,11 +36,10 @@ void MenuModule::Layout() {
 }
 
 void MenuModule::Start() {
-
+    Layout();
 }
 
 void MenuModule::Update() {
-    Layout();
     HandleButton(playButton, MenuAction::Play);
     HandleButton(settingsButton, MenuAction::Settings); 
 }
