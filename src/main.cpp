@@ -1,8 +1,8 @@
-#include "constants/WorldUnits.h"
 #include "constants/ScreenConstants.h"
+#include "constants/WorldUnits.h"
 #include "modules/map/MapModule.h"
-#include "modules/player/PlayerModule.h"
 #include "modules/menu/MenuModule.h"
+#include "modules/player/PlayerModule.h"
 #include "raylib.h"
 
 #include <cmath>
@@ -31,13 +31,16 @@ void FitCameraToScreen(Camera2D &camera, float userZoom) {
 
 void UpdateCameraZoom(Camera2D &camera, float &userZoom) {
     const float wheel = GetMouseWheelMove();
-    if (wheel == 0.0f)
+    if (wheel == 0.0f) {
         return;
+    }
     userZoom *= powf(ZOOM_STEP, wheel);
-    if (userZoom > MAX_ZOOM)
+    if (userZoom > MAX_ZOOM) {
         userZoom = MAX_ZOOM;
-    if (userZoom < MIN_ZOOM)
+    }
+    if (userZoom < MIN_ZOOM) {
         userZoom = MIN_ZOOM;
+    }
     FitCameraToScreen(camera, userZoom);
 }
 
@@ -55,7 +58,7 @@ int main() {
     Music menuMusic = LoadMusicStream("resources/sounds/menuSong.mp3");
     menuMusic.looping = true;
     PlayMusicStream(menuMusic);
-    
+
     auto state = GameState::Menu;
     auto menu = MenuModule();
     menu.Start();

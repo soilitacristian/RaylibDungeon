@@ -4,7 +4,7 @@
 #include <cstdint>
 
 class MapModule : public GameModule {
-  public:
+public:
     MapModule();
     ~MapModule() override;
     void Start() override;
@@ -13,10 +13,14 @@ class MapModule : public GameModule {
 
     bool IsSolid(int tileX, int tileY) const;
     void DrawDebugCollisions() const;
-    bool IsDebugCollisionsEnabled() const { return debugCollisions; }
+
+    bool IsDebugCollisionsEnabled() const {
+        return debugCollisions;
+    }
+
     Vector2 FindSpawnPoint() const;
 
-  private:
+private:
     Tilemap tilemap;
     std::vector<TileDraw> drawList;
     std::vector<uint8_t> solid;

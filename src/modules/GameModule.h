@@ -1,7 +1,7 @@
 ﻿#pragma once
 
 class GameModule {
-  public:
+public:
     virtual ~GameModule() = default;
     virtual void Start() = 0;
     virtual void Update() = 0;
