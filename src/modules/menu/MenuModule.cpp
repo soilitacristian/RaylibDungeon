@@ -40,6 +40,9 @@ void MenuModule::Start() {
 }
 
 void MenuModule::Update() {
+    if (IsWindowResized())
+        Layout();
+    
     HandleButton(playButton, MenuAction::Play);
     HandleButton(settingsButton, MenuAction::Settings); 
 }

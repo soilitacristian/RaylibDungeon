@@ -9,7 +9,7 @@ public:
     void Update() override;
     void Draw() override;
     MenuAction ConsumeAction();
-    void Layout();
+
     
 private:
     float scaledFontSize = 0.0f;
@@ -17,6 +17,7 @@ private:
     Rectangle settingsButton{};
     MenuAction pendingAction = MenuAction::None;
     
+    void Layout();
     bool IsHovered(Rectangle button) const;
     void HandleButton(Rectangle button, MenuAction action);
 };

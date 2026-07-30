@@ -73,7 +73,6 @@ int main() {
         while (!WindowShouldClose()) {
             if (IsWindowResized()) {
                 FitCameraToScreen(camera, userZoom);
-                menu.Layout();
             }
             UpdateCameraZoom(camera, userZoom);
             switch (state) {
