@@ -26,8 +26,12 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(raylib nlohmann_json)
 
 file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS src/*)
-add_executable(main ${SOURCES})
+add_executable(main ${SOURCES}
+        src/modules/menu/MenuModule.cpp
+        src/constants/ScreenConstants.h
+        src/constants/ScreenConstants.h)
 target_link_libraries(main PRIVATE raylib nlohmann_json::nlohmann_json)
+target_include_directories(main PRIVATE ${CMAKE_SOURCE_DIR}/src)
 
 add_custom_command(TARGET main POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_directory

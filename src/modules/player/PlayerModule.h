@@ -4,14 +4,14 @@
 #include "../map/MapModule.h"
 
 class PlayerModule : public GameModule {
-  public:
+public:
     PlayerModule(Camera2D *camera, const MapModule *map);
     ~PlayerModule() override;
     void Start() override;
     void Update() override;
     void Draw() override;
 
-  private:
+private:
     SpriteSheetAnimator animator;
     Camera2D *targetCamera;
     const MapModule *map;
