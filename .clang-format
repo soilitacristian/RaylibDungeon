@@ -1,3 +1,36 @@
 BasedOnStyle: LLVM
 IndentWidth: 4
 ColumnLimit: 120
+SortIncludes: true
+
+# Don't allow single-line statements for if / for / while
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortLoopsOnASingleLine: false
+
+# Never collapse a block onto one line
+AllowShortBlocksOnASingleLine: Never
+
+# Empty function bodies become {}, non-empty ones stay expanded
+AllowShortFunctionsOnASingleLine: Empty
+
+# Always add {} for single statements
+InsertBraces: true
+
+# Force blank line between functions
+SeparateDefinitionBlocks: Always
+
+# All on one line, or one per line, never half-half
+BinPackArguments: false
+BinPackParameters: false
+
+# No spaces around braces like this {a, b}
+Cpp11BracedListStyle: true
+
+# Closing bracket on its own newline
+AlignAfterOpenBracket: BlockIndent
+
+# Don't indent public / private modifiers in classes
+AccessModifierOffset: -4
+
+# Always put the * in front of the variable not behind the type
+PointerAlignment: Right
