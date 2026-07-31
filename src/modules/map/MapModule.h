@@ -10,8 +10,10 @@ public:
     void Start() override;
     void Update() override;
     void Draw() override;
+    void DrawSorted(const std::vector<TileDraw> &externalSortables = {});
 
     bool IsSolid(int tileX, int tileY) const;
+    bool CollidesWithRect(const Rectangle &box) const;
     void DrawDebugCollisions() const;
 
     bool IsDebugCollisionsEnabled() const {
@@ -22,9 +24,12 @@ public:
 
 private:
     Tilemap tilemap;
-    std::vector<TileDraw> drawList;
+    std::vector<TileDraw> staticDrawList;
+    std::vector<TileDraw> sortableDrawList;
+    std::vector<TileDraw> ySortedDrawList;
     std::vector<uint8_t> solid;
-    bool debugCollisions = false;
+    std::vector<Rectangle> mapCollisions;
+    bool debugCollisions = true;
 
     Tilemap LoadTilemap(const std::string &tilemapPath);
     TilesetInfo LoadTilesetInfo(const std::string &tsjPath, int firstGid, const std::string &baseDir);

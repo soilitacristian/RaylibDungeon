@@ -2,6 +2,8 @@
 #include "../../features/animator/SpriteSheetAnimator.h"
 #include "../GameModule.h"
 #include "../map/MapModule.h"
+#include "modules/map/MapDrawingData.h"
+#include "raylib.h"
 
 class PlayerModule : public GameModule {
 public:
@@ -10,6 +12,7 @@ public:
     void Start() override;
     void Update() override;
     void Draw() override;
+    TileDraw GetDrawable();
 
 private:
     SpriteSheetAnimator animator;

@@ -1,4 +1,6 @@
 ﻿#include "MapModule.h"
+#include "modules/map/MapDrawingData.h"
+#include "raylib.h"
 #include <cstdint>
 #include <filesystem>
 #include <fstream>
@@ -34,6 +36,38 @@ TilesetInfo MapModule::LoadTilesetInfo(const std::string &tsjPath, int firstGid,
     return tsInfo;
 }
 
+bool GetBoolProperty(const nlohmann::json &json, const std::string &name) {
+    if (!json.contains("properties")) {
+        TraceLog(LOG_WARNING, "GetBoolProperty: failed to find \"properties\" field.");
+        return false;
+    }
+
+    for (const auto &property : json["properties"]) {
+        if (property["name"] == name) {
+            return property.value("value", false);
+        }
+    }
+
+    return false;
+}
+
+std::vector<TileObject> GetObjects(const nlohmann::json &json, float tileWidth, float tileHeight) {
+    std::vector<TileObject> objects;
+    if (!json.contains("objects")) {
+        TraceLog(LOG_WARNING, "GetObjects: failed to find \"objects\" field.");
+        return objects;
+    }
+    for (const auto &object : json["objects"]) {
+        objects.push_back({
+            object.value("x", 0.0f) / tileWidth,
+            object.value("y", 0.0f) / tileHeight,
+            object.value("width", 0.0f) / tileWidth,
+            object.value("height", 0.0f) / tileHeight,
+        });
+    }
+    return objects;
+}
+
 Tilemap MapModule::LoadTilemap(const std::string &tilemapPath) {
     std::ifstream file(tilemapPath);
     if (!file) {
@@ -55,12 +89,24 @@ Tilemap MapModule::LoadTilemap(const std::string &tilemapPath) {
     }
 
     for (auto &layerJson : json["layers"]) {
-        TileLayer layer;                                                  // example from dungeon.json
-        layer.name = layerJson["name"];                                   // "name":"walls",
-        layer.width = layerJson["width"];                                 // "width":30,
-        layer.height = layerJson["height"];                               // "height":20,
-        layer.data = layerJson["data"].get<std::vector<std::uint32_t>>(); // "data":[2, 75, 75 ... ],
-        layer.isCollision = (layer.name == "walls");
+        TileLayer layer;
+        layer.name = layerJson["name"];
+        layer.isCollision = GetBoolProperty(layerJson, "collidable");
+        layer.isYSortable = GetBoolProperty(layerJson, "ysortable");
+
+        const std::string layerType = layerJson.value("type", "tilelayer");
+        if (layerType == "objectgroup") {
+            float width = static_cast<float>(map.tileWidth);
+            float height = static_cast<float>(map.tileHeight);
+            layer.width = 0;
+            layer.height = 0;
+            layer.objects = GetObjects(layerJson, width, height);
+        } else {
+            layer.width = layerJson["width"];
+            layer.height = layerJson["height"];
+            layer.data = layerJson["data"].get<std::vector<std::uint32_t>>();
+        }
+
         map.layers.push_back(std::move(layer));
     }
 
@@ -260,7 +306,13 @@ void MapModule::BuildDrawList() {
                     dest.y += origin.y;
                 }
 
-                drawList.push_back({ts->texture, source, dest, origin, transform.rotation});
+                float ySort = dest.y + dest.height;
+                TileDraw tile = {ts->texture, source, dest, origin, transform.rotation, ySort};
+                if (layer.isYSortable) {
+                    sortableDrawList.push_back(tile);
+                } else {
+                    staticDrawList.push_back(tile);
+                }
             }
         }
     }
@@ -276,8 +328,16 @@ void MapModule::BuildDrawList() {
  */
 void MapModule::BuildCollision() {
     solid.assign(static_cast<size_t>(tilemap.width) * tilemap.height, 0);
+    mapCollisions.clear();
+
     for (const auto &layer : tilemap.layers) {
         if (!layer.isCollision) {
+            continue;
+        }
+        if (!layer.objects.empty()) {
+            for (const auto &object : layer.objects) {
+                mapCollisions.push_back({object.x, object.y, object.width, object.height});
+            }
             continue;
         }
         for (size_t i = 0; i < layer.data.size(); i++) {
@@ -286,6 +346,29 @@ void MapModule::BuildCollision() {
             }
         }
     }
+}
+
+bool MapModule::CollidesWithRect(const Rectangle &box) const {
+    const int minX = static_cast<int>(floorf(box.x));
+    const int maxX = static_cast<int>(ceilf(box.x + box.width)) - 1;
+    const int minY = static_cast<int>(floorf(box.y));
+    const int maxY = static_cast<int>(ceilf(box.y + box.height)) - 1;
+
+    for (int y = minY; y <= maxY; y++) {
+        for (int x = minX; x <= maxX; x++) {
+            if (IsSolid(x, y)) {
+                return true;
+            }
+        }
+    }
+
+    for (const auto &rect : mapCollisions) {
+        if (CheckCollisionRecs(box, rect)) {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 void MapModule::Start() {
@@ -300,8 +383,27 @@ void MapModule::Update() {
     }
 }
 
+/*
+ * Draws static tiles, should be called before DrawSorted()
+ */
 void MapModule::Draw() {
-    for (const auto &tile : drawList) {
+    for (const auto &tile : staticDrawList) {
+        DrawTexturePro(tile.texture, tile.source, tile.dest, tile.origin, tile.rotation, WHITE);
+    }
+}
+
+/*
+ * Draws all the dyanmic tiles that require Y sorting first
+ */
+void MapModule::DrawSorted(const std::vector<TileDraw> &extraSortables) {
+    ySortedDrawList = sortableDrawList;
+    ySortedDrawList.insert(ySortedDrawList.end(), extraSortables.begin(), extraSortables.end());
+
+    std::sort(ySortedDrawList.begin(), ySortedDrawList.end(), [](const TileDraw &a, const TileDraw &b) {
+        return a.ySort < b.ySort;
+    });
+
+    for (const auto &tile : ySortedDrawList) {
         DrawTexturePro(tile.texture, tile.source, tile.dest, tile.origin, tile.rotation, WHITE);
     }
 
@@ -358,5 +460,9 @@ void MapModule::DrawDebugCollisions() const {
             const Rectangle cell = {static_cast<float>(x), static_cast<float>(y), 1.0f, 1.0f};
             DrawRectangleLinesEx(cell, thickness, RED);
         }
+    }
+
+    for (const auto &rect : mapCollisions) {
+        DrawRectangleLinesEx(rect, thickness, GREEN);
     }
 }

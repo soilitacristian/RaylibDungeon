@@ -117,6 +117,7 @@ int main() {
                     BeginMode2D(camera);
                     {
                         map.Draw();
+                        map.DrawSorted({player.GetDrawable()});
                         player.Draw();
                     }
                     EndMode2D();

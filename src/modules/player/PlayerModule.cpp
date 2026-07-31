@@ -1,9 +1,11 @@
 ﻿#include "PlayerModule.h"
 #include "constants/WorldUnits.h"
+#include "modules/map/MapDrawingData.h"
 #include "raylib.h"
 #include <cmath>
 
 constexpr float PLAYER_SPEED = 5.0f;
+constexpr float PLAYER_FOOT_PADDING_PX = 18.0f;
 constexpr float COLLIDER_WIDTH = 0.6f;
 constexpr float COLLIDER_HEIGHT = 0.35f;
 
@@ -36,24 +38,10 @@ void PlayerModule::Update() {
 }
 
 void PlayerModule::Draw() {
-    auto animatorResult = animator.GetResult();
-
-    const float width = animatorResult->sourceRect.width / WORLD_UNIT_IN_PIXELS;
-    const float height = animatorResult->sourceRect.height / WORLD_UNIT_IN_PIXELS;
-
-    const Rectangle destination = {
-        position.x,
-        position.y,
-        width,
-        height,
-    };
-    const Vector2 origin = {width * 0.5f, height * 0.5f};
-
     /*
      * FIXME: player collider is now in the middle of the sprite which might not be optimal
      * having it start from waist to feet should look better, needs testing
      */
-    DrawTexturePro(animatorResult->texture, animatorResult->sourceRect, destination, origin, 0.0f, WHITE);
     if (map->IsDebugCollisionsEnabled()) {
         DrawRectangleLinesEx(ColliderAt(position), 0.04f, GREEN);
     }
@@ -187,21 +175,7 @@ Rectangle PlayerModule::ColliderAt(Vector2 position) const {
  * then check if that position is solid
  */
 bool PlayerModule::CollidesAt(Vector2 position) const {
-    const Rectangle box = ColliderAt(position);
-
-    const int minX = static_cast<int>(floorf(box.x));
-    const int maxX = static_cast<int>(ceilf(box.x + box.width)) - 1;
-    const int minY = static_cast<int>(floorf(box.y));
-    const int maxY = static_cast<int>(ceilf(box.y + box.height)) - 1;
-
-    for (int y = minY; y <= maxY; y++) {
-        for (int x = minX; x <= maxX; x++) {
-            if (map->IsSolid(x, y)) {
-                return true;
-            }
-        }
-    }
-    return false;
+    return map->CollidesWithRect(ColliderAt(position));
 }
 
 /*
@@ -221,4 +195,28 @@ void PlayerModule::MoveWithCollisionCheck(Vector2 delta) {
     }
 
     position = nextPosition;
+}
+
+TileDraw PlayerModule::GetDrawable() {
+    auto animatorResult = animator.GetResult();
+
+    const float width = animatorResult->sourceRect.width / WORLD_UNIT_IN_PIXELS;
+    const float height = animatorResult->sourceRect.height / WORLD_UNIT_IN_PIXELS;
+    const float footPadding = PLAYER_FOOT_PADDING_PX / WORLD_UNIT_IN_PIXELS;
+
+    const Rectangle destination = {
+        position.x - width * 0.5f,
+        position.y - height + footPadding,
+        width,
+        height,
+    };
+
+    return {
+        animatorResult->texture,
+        animatorResult->sourceRect,
+        destination,
+        {0.0f, 0.0f},
+        0.0f,
+        position.y,
+    };
 }

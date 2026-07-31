@@ -50,6 +50,11 @@ struct TilesetInfo {
     Texture2D texture;
 };
 
+struct TileObject {
+    float x, y;
+    float width, height;
+};
+
 /*
  * Flags are still attahed to the data
  */
@@ -57,7 +62,9 @@ struct TileLayer {
     std::string name;
     int width, height;
     std::vector<std::uint32_t> data;
+    std::vector<TileObject> objects;
     bool isCollision;
+    bool isYSortable;
 };
 
 struct Tilemap {
@@ -76,6 +83,7 @@ struct TileDraw {
     Rectangle dest;
     Vector2 origin;
     float rotation;
+    float ySort;
 };
 
 struct TileTransform {
